@@ -17,6 +17,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/includes/free_plan.php';
 
 function e($value): string
 {
@@ -47,6 +48,8 @@ $storeName = '';
 $slug = '';
 $packageId = null;
 $selectedPackage = null;
+$freePlanToken = trim((string) ($_GET['free_token'] ?? ''));
+$freePlanInvite = $freePlanToken !== '' ? restockFreePlanFindInvite($pdo, $freePlanToken) : null;
 $errors = [];
 
 $rawPackageId = filter_input(INPUT_GET, 'package_id', FILTER_VALIDATE_INT);
@@ -106,10 +109,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password_confirm = (string) ($_POST['password_confirm'] ?? '');
     $storeName = trim((string) ($_POST['store_name'] ?? ''));
     $slug = trim((string) ($_POST['slug'] ?? ''));
+    $freePlanToken = trim((string) ($_POST['free_token'] ?? $freePlanToken));
+
     if ($_POST['package_id'] ?? null) {
         $postedPackageId = filter_var($_POST['package_id'], FILTER_VALIDATE_INT);
         if ($postedPackageId !== false && $postedPackageId !== null) {
             $packageId = (int) $postedPackageId;
+        }
+    }
+
+    if ($freePlanToken !== '') {
+        $freePlanInvite = restockFreePlanFindInvite($pdo, $freePlanToken);
+        if (!$freePlanInvite) {
+            $errors[] = 'Link Free Plan sudah tidak aktif, sudah habis, atau tidak ditemukan.';
         }
     }
 
@@ -165,12 +177,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Slug hanya boleh berisi huruf kecil, angka, dan tanda hubung.';
     }
 
-    if ($packageId === null || $packageId <= 0) {
-        $errors[] = 'Pilih paket terlebih dahulu sebelum membuat akun.';
-    } else {
-        $selectedPackage = findActivePackage($pdo, $packageId);
-        if (!$selectedPackage) {
-            $errors[] = 'Paket yang dipilih tidak tersedia atau sudah tidak aktif. Silakan pilih paket lain.';
+    if ($freePlanToken === '') {
+        if ($packageId === null || $packageId <= 0) {
+            $errors[] = 'Pilih paket terlebih dahulu sebelum membuat akun.';
+        } else {
+            $selectedPackage = findActivePackage($pdo, $packageId);
+            if (!$selectedPackage) {
+                $errors[] = 'Paket yang dipilih tidak tersedia atau sudah tidak aktif. Silakan pilih paket lain.';
+            }
         }
     }
 
@@ -205,6 +219,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
             $accountStmt->execute([':account_name' => $name]);
             $accountId = (int) $pdo->lastInsertId();
+
+            if ($freePlanToken !== '') {
+                $freePlanResult = restockFreePlanRedeem($pdo, $freePlanToken, $accountId);
+                if (!$freePlanResult['success']) {
+                    throw new RuntimeException($freePlanResult['message']);
+                }
+            }
 
             $passwordHash = password_hash($password, PASSWORD_DEFAULT);
             if ($passwordHash === false) {
@@ -254,8 +275,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['store_id'] = $storeId;
             $_SESSION['store_name'] = $storeName;
             $_SESSION['store_slug'] = $slug;
-            $_SESSION['selected_package_id'] = $packageId;
+            $_SESSION['selected_package_id'] = $freePlanToken !== '' ? null : $packageId;
             $_SESSION['login_at'] = time();
+
+            if ($freePlanToken !== '') {
+                header('Location: /?free_plan=activated');
+                exit;
+            }
 
             header('Location: /checkout.php');
             exit;
@@ -331,7 +357,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <form method="POST" id="registerForm" novalidate>
                 <input type="hidden" name="csrf_token" value="<?= e($csrfToken) ?>">
                 <input type="hidden" name="package_id" value="<?= e($packageId) ?>">
-<?php if ($packageStoreCoverageError): ?>
+                <input type="hidden" name="free_token" value="<?= e($freePlanToken) ?>">
+<?php if ($freePlanToken !== '' && $freePlanInvite): ?>
+                    <div class="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                        <div class="flex items-start gap-3">
+                            <i data-lucide="gift" class="w-5 h-5 text-emerald-700 mt-0.5 shrink-0"></i>
+                            <div>
+                                <p class="text-sm font-semibold text-emerald-900">Free Plan aktif melalui undangan</p>
+                                <p class="text-xs text-emerald-800 mt-1">
+                                    <?= e($freePlanInvite['package_name'] ?: 'Free Plan Lifetime') ?>
+                                    · <?= $freePlanInvite['package_name'] ? number_format((int) $freePlanInvite['duration_days']) . ' hari' : 'tanpa batas waktu' ?>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <?php if ($packageStoreCoverageError): ?>
     <div class="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
         <?= e($packageStoreCoverageError) ?>
     </div>
