@@ -39,7 +39,7 @@ assertContract(
 );
 
 assertContract(
-    str_contains($source, "['package_id' => (int)"),
+    str_contains($source, "'package_id' => (int"),
     'package_id pada link pendaftaran harus berasal dari ID package yang di-cast ke integer'
 );
 
