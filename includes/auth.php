@@ -25,6 +25,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/subscription.php';
 
 function destroyRestockAuthSession(): void {
     $_SESSION = [];
@@ -175,6 +176,43 @@ if (!$membership) {
     destroyRestockAuthSession();
     header('Location: /login.php');
     exit;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Subscription access gate
+|--------------------------------------------------------------------------
+| Hanya area aplikasi utama yang wajib punya subscription ACTIVE.
+| Developer area, login, checkout, dan halaman subscription tidak melewati
+| guard ini karena memiliki alur akses tersendiri.
+*/
+$requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+
+$subscriptionGatedPrefixes = [
+    '/pages/',
+    '/index.php',
+    '/index',
+];
+
+$isSubscriptionGated = false;
+foreach ($subscriptionGatedPrefixes as $prefix) {
+    if ($prefix === '/pages/' && str_starts_with($requestPath, $prefix)) {
+        $isSubscriptionGated = true;
+        break;
+    }
+
+    if ($requestPath === $prefix) {
+        $isSubscriptionGated = true;
+        break;
+    }
+}
+
+if ($isSubscriptionGated) {
+    restockRequireActiveSubscription(
+        $pdo,
+        (int) $membership['account_id'],
+        (int) $membership['store_id']
+    );
 }
 
 /*
