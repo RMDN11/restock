@@ -54,6 +54,23 @@ if ($rawPackageId !== null && $rawPackageId !== false) {
     $packageId = (int) $rawPackageId;
 }
 
+function activeStoreCountForAccount(PDO $pdo, int $accountId): int
+{
+    if ($accountId <= 0) {
+        return 0;
+    }
+
+    $stmt = $pdo->prepare(
+        "SELECT COUNT(*)
+         FROM stores
+         WHERE account_id = :account_id
+           AND status = 'ACTIVE'"
+    );
+    $stmt->execute([':account_id' => $accountId]);
+
+    return (int) $stmt->fetchColumn();
+}
+
 function findActivePackage(PDO $pdo, ?int $packageId): ?array
 {
     if ($packageId === null || $packageId <= 0) {
@@ -61,7 +78,7 @@ function findActivePackage(PDO $pdo, ?int $packageId): ?array
     }
 
     $packageStmt = $pdo->prepare(
-        "SELECT id, name, price, duration_days FROM packages
+        "SELECT id, name, price, duration_days, min_store_count, max_store_count FROM packages
          WHERE id = :package_id AND status = 'ACTIVE' LIMIT 1"
     );
     $packageStmt->execute([':package_id' => $packageId]);
