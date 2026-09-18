@@ -57,15 +57,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'CREAT
                             (account_id, store_id, created_by, token_hash, expires_at, status, created_at, updated_at)
                          VALUES
                             (:account_id, :store_id, :created_by, :token_hash,
-                             DATE_ADD(CURRENT_TIMESTAMP, INTERVAL :duration_days DAY),
+                             DATE_ADD(CURRENT_TIMESTAMP, INTERVAL $durationDays DAY),
                              'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
                     );
                     $insert->bindValue(':account_id', (int) $store['account_id'], PDO::PARAM_INT);
                     $insert->bindValue(':store_id', $storeId, PDO::PARAM_INT);
                     $insert->bindValue(':created_by', $authUserId, PDO::PARAM_INT);
                     $insert->bindValue(':token_hash', hash('sha256', $token), PDO::PARAM_STR);
-                    $insert->bindValue(':duration_days', $durationDays, PDO::PARAM_INT);
-                    $insert->execute();
+                    $expiresAt = date('Y-m-d H:i:s', time() + ($durationDays * 86400));
+                    $insert = $pdo->prepare(
+                        "INSERT INTO special_access_links
+                            (account_id, store_id, created_by, token_hash, expires_at, status, created_at, updated_at)
+                         VALUES
+                            (:account_id, :store_id, :created_by, :token_hash, :expires_at, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+                    );
+                    $insert->execute([
+                        ':account_id' => (int) $store['account_id'],
+                        ':store_id' => $storeId,
+                        ':created_by' => $authUserId,
+                        ':token_hash' => hash('sha256', $token),
+                        ':expires_at' => $expiresAt,
+                    ]);
 
                     $accessCreatedToken = $token;
                     $accessMessage = 'Link akses khusus berhasil dibuat. Simpan dan berikan hanya kepada user tujuan.';
@@ -208,7 +220,7 @@ require_once __DIR__ . '/includes/sidebar.php';
                                 id="specialAccessLink"
                                 type="text"
                                 readonly
-                                value="<?= e('/developer-access.php?token=' . $accessCreatedToken) ?>"
+                                value="<?= e(((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://') . ($_SERVER['HTTP_HOST'] ?? 'restock.reqra.my.id') . '/developer-access.php?token=' . $accessCreatedToken) ?>"
                                 class="min-h-11 min-w-0 flex-1 rounded-xl border border-neutral-200 bg-white px-3 text-xs text-neutral-700"
                             >
                             <button
