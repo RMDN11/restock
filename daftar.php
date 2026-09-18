@@ -54,6 +54,26 @@ if ($rawPackageId !== null && $rawPackageId !== false) {
     $packageId = (int) $rawPackageId;
 }
 
+function findActivePackage(PDO $pdo, ?int $packageId): ?array
+{
+    if ($packageId === null || $packageId <= 0) {
+        return null;
+    }
+
+    $packageStmt = $pdo->prepare(
+        "SELECT id, name, price, duration_days FROM packages
+         WHERE id = :package_id AND status = 'ACTIVE' LIMIT 1"
+    );
+    $packageStmt->execute([':package_id' => $packageId]);
+    $package = $packageStmt->fetch();
+
+    return $package ?: null;
+}
+
+if ($packageId !== null) {
+    $selectedPackage = findActivePackage($pdo, $packageId);
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postedToken = (string) ($_POST['csrf_token'] ?? '');
     if ($postedToken === '' || !hash_equals($csrfToken, $postedToken)) {
@@ -129,13 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($packageId === null || $packageId <= 0) {
         $errors[] = 'Pilih paket terlebih dahulu sebelum membuat akun.';
     } else {
-        $packageStmt = $pdo->prepare(
-            "SELECT id, name, price, duration_days FROM packages
-             WHERE id = :package_id AND status = 'ACTIVE' LIMIT 1"
-        );
-        $packageStmt->execute([':package_id' => $packageId]);
-        $selectedPackage = $packageStmt->fetch();
-
+        $selectedPackage = findActivePackage($pdo, $packageId);
         if (!$selectedPackage) {
             $errors[] = 'Paket yang dipilih tidak tersedia atau sudah tidak aktif. Silakan pilih paket lain.';
         }
