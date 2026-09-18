@@ -26,6 +26,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/subscription.php';
+require_once __DIR__ . '/special_access.php';
 
 function destroyRestockAuthSession(): void {
     $_SESSION = [];
@@ -208,11 +209,19 @@ foreach ($subscriptionGatedPrefixes as $prefix) {
 }
 
 if ($isSubscriptionGated) {
-    restockRequireActiveSubscription(
+    $hasSpecialAccess = restockHasSpecialAccess(
         $pdo,
-        (int) $membership['account_id'],
+        $userId,
         (int) $membership['store_id']
     );
+
+    if (!$hasSpecialAccess) {
+        restockRequireActiveSubscription(
+            $pdo,
+            (int) $membership['account_id'],
+            (int) $membership['store_id']
+        );
+    }
 }
 
 /*

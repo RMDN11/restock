@@ -8,6 +8,11 @@ $files = [
     $root . '/includes/subscription.php',
     $root . '/includes/auth.php',
     $root . '/database/migrations/008_subscription_activation.sql',
+    $root . '/database/migrations/009_special_access_links.sql',
+    $root . '/includes/special_access.php',
+    $root . '/renewal.php',
+    $root . '/renewal/select.php',
+    $root . '/developer-access.php',
     $root . '/subscription.php',
 ];
 
@@ -28,7 +33,12 @@ $sidebar = file_get_contents($files[1]);
 $helper = file_get_contents($files[2]);
 $auth = file_get_contents($files[3]);
 $migration = file_get_contents($files[4]);
-$page = file_get_contents($files[5]);
+$specialMigration = file_get_contents($files[5]);
+$specialHelper = file_get_contents($files[6]);
+$renewal = file_get_contents($files[7]);
+$renewalSelect = file_get_contents($files[8]);
+$accessPage = file_get_contents($files[9]);
+$page = file_get_contents($files[10]);
 
 foreach ([
     "UPDATE subscriptions",
@@ -83,7 +93,7 @@ foreach ([
     'Subscription',
     'reason',
     '/checkout.php',
-    '/paket/',
+    '/renewal.php',
     'subscriptionNotice',
     '3000',
 ] as $needle) {
@@ -91,3 +101,51 @@ foreach ([
 }
 
 echo "PASS: subscription management contract\n";
+
+foreach ([
+    'CREATE TABLE IF NOT EXISTS special_access_links',
+    'token_hash CHAR(64)',
+    'expires_at DATETIME NOT NULL',
+    "status ENUM('ACTIVE','REVOKED','EXPIRED')",
+    'created_by BIGINT UNSIGNED NOT NULL',
+] as $needle) {
+    assertContract(str_contains($specialMigration, $needle), 'Schema special access tidak lengkap: ' . $needle);
+}
+
+foreach ([
+    'function restockSpecialAccessTokenHash',
+    'function restockSyncSpecialAccess',
+    'special_access_token',
+    'token_hash',
+    'expires_at > CURRENT_TIMESTAMP',
+] as $needle) {
+    assertContract(str_contains($specialHelper, $needle), 'Helper special access tidak lengkap: ' . $needle);
+}
+
+foreach ([
+    'Perpanjang akses RESTOCK',
+    '/renewal/select.php',
+    'duration_days',
+    'Pembayaran renewal',
+] as $needle) {
+    assertContract(str_contains($renewal, $needle), 'Renewal page tidak lengkap: ' . $needle);
+}
+
+foreach ([
+    'selected_package_id',
+    '/checkout.php',
+    "status = 'ACTIVE'",
+] as $needle) {
+    assertContract(str_contains($renewalSelect, $needle), 'Renewal selection tidak lengkap: ' . $needle);
+}
+
+foreach ([
+    'pending_special_access_token',
+    '/login.php',
+    'store tujuan',
+    'special_access_token',
+] as $needle) {
+    assertContract(str_contains($accessPage, $needle), 'Special access gateway tidak lengkap: ' . $needle);
+}
+
+echo "PASS: renewal and special access contract\n";
