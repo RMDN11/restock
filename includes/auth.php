@@ -182,20 +182,32 @@ if (!$membership) {
 |--------------------------------------------------------------------------
 | Subscription access gate
 |--------------------------------------------------------------------------
-| Checkout dan halaman subscription tetap dapat diakses agar akun tanpa
-| subscription bisa membayar/renew. Area aplikasi lainnya membutuhkan
-| subscription ACTIVE yang belum melewati ends_at.
+| Hanya area aplikasi utama yang wajib punya subscription ACTIVE.
+| Developer area, login, checkout, dan halaman subscription tidak melewati
+| guard ini karena memiliki alur akses tersendiri.
 */
 $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 
-$subscriptionExemptPaths = [
-    '/checkout.php',
-    '/subscription.php',
+$subscriptionGatedPrefixes = [
+    '/pages/',
+    '/index.php',
+    '/index',
 ];
 
-$isSubscriptionExempt = in_array($requestPath, $subscriptionExemptPaths, true);
+$isSubscriptionGated = false;
+foreach ($subscriptionGatedPrefixes as $prefix) {
+    if ($prefix === '/pages/' && str_starts_with($requestPath, $prefix)) {
+        $isSubscriptionGated = true;
+        break;
+    }
 
-if (!$isSubscriptionExempt) {
+    if ($requestPath === $prefix) {
+        $isSubscriptionGated = true;
+        break;
+    }
+}
+
+if ($isSubscriptionGated) {
     restockRequireActiveSubscription(
         $pdo,
         (int) $membership['account_id'],
