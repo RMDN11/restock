@@ -91,6 +91,25 @@ if ($packageId !== null) {
     $selectedPackage = findActivePackage($pdo, $packageId);
 }
 
+$packageStoreCoverageError = '';
+if ($selectedPackage) {
+    $requestedCoverage = 1;
+
+    if (
+        $selectedPackage['min_store_count'] !== null &&
+        $requestedCoverage < (int) $selectedPackage['min_store_count']
+    ) {
+        $packageStoreCoverageError = 'Paket ini memiliki cakupan minimum ' . (int) $selectedPackage['min_store_count'] . ' toko.';
+    }
+
+    if (
+        $selectedPackage['max_store_count'] !== null &&
+        $requestedCoverage > (int) $selectedPackage['max_store_count']
+    ) {
+        $packageStoreCoverageError = 'Paket ini hanya mencakup maksimal ' . (int) $selectedPackage['max_store_count'] . ' toko.';
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postedToken = (string) ($_POST['csrf_token'] ?? '');
     if ($postedToken === '' || !hash_equals($csrfToken, $postedToken)) {
@@ -329,6 +348,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <form method="POST" id="registerForm" novalidate>
                 <input type="hidden" name="csrf_token" value="<?= e($csrfToken) ?>">
                 <input type="hidden" name="package_id" value="<?= e($packageId) ?>">
+<?php if ($packageStoreCoverageError): ?>
+    <div class="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+        <?= e($packageStoreCoverageError) ?>
+    </div>
+<?php endif; ?>
 
                 <?php if ($selectedPackage || $packageId !== null): ?>
                     <div class="mb-6 rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3">
