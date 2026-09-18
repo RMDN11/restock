@@ -52,17 +52,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'CREAT
             } else {
                 try {
                     $token = bin2hex(random_bytes(32));
-                    $insert = $pdo->prepare(
-                        "INSERT INTO special_access_links
-                            (account_id, store_id, created_by, token_hash, expires_at, status, created_at, updated_at)
-                         VALUES
-                            (:account_id, :store_id, :created_by, :token_hash,
-                             DATE_ADD(CURRENT_TIMESTAMP, INTERVAL $durationDays DAY),
-                             'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
-                    );
-                    $insert->bindValue(':account_id', (int) $store['account_id'], PDO::PARAM_INT);
-                    $insert->bindValue(':store_id', $storeId, PDO::PARAM_INT);
-                    $insert->bindValue(':created_by', $authUserId, PDO::PARAM_INT);
                     $insert->bindValue(':token_hash', hash('sha256', $token), PDO::PARAM_STR);
                     $expiresAt = date('Y-m-d H:i:s', time() + ($durationDays * 86400));
                     $insert = $pdo->prepare(
