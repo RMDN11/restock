@@ -11,7 +11,7 @@ $accessCreatedToken = '';
 $accessMessage = '';
 $accessError = '';
 
-$storeStmt = $pdo->query(
+$developerStoresStmt = $pdo->query(
     "SELECT
         s.id,
         s.name,
@@ -22,7 +22,7 @@ $storeStmt = $pdo->query(
        AND a.status = 'ACTIVE'
      ORDER BY a.name ASC, s.name ASC"
 );
-$developerStores = $storeStmt->fetchAll();
+$developerStores = $developerStoresStmt->fetchAll();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'CREATE_SPECIAL_ACCESS') {
     $postedCsrf = (string) ($_POST['csrf_token'] ?? '');
@@ -53,12 +53,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'CREAT
                 try {
                     $token = bin2hex(random_bytes(32));
                     $expiresAt = $lifetime ? null : date('Y-m-d H:i:s', time() + 86400);
+
                     $insert = $pdo->prepare(
                         "INSERT INTO special_access_links
                             (account_id, store_id, created_by, token_hash, access_scope, expires_at, status, created_at, updated_at)
                          VALUES
                             (:account_id, :store_id, :created_by, :token_hash, :access_scope, :expires_at, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
                     );
+
                     $insert->execute([
                         ':account_id' => (int) $store['account_id'],
                         ':store_id' => $storeId,
@@ -69,9 +71,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'CREAT
                     ]);
 
                     $accessCreatedToken = $token;
-                    $accessMessage = 'Link akses khusus berhasil dibuat. Simpan dan berikan hanya kepada user tujuan.';
+                    $accessMessage = $lifetime
+                        ? 'Link lifetime berhasil dibuat.'
+                        : 'Link akses 24 jam berhasil dibuat.';
                 } catch (PDOException $e) {
-                    $accessError = 'Link akses belum dapat dibuat. Silakan coba lagi.';
+                    $accessError = 'Link akses belum dapat dibuat. Pastikan migration Task 13 sudah dijalankan.';
                 }
             }
         }
@@ -81,6 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'CREAT
 $specialAccessStmt = $pdo->query(
     "SELECT
         sal.id,
+        sal.access_scope,
         sal.expires_at,
         sal.status,
         sal.last_used_at,
@@ -88,13 +93,12 @@ $specialAccessStmt = $pdo->query(
         s.name AS store_name,
         a.name AS account_name
      FROM special_access_links sal
-     INNER JOIN stores s ON s.id = sal.store_id
      INNER JOIN accounts a ON a.id = sal.account_id
+     LEFT JOIN stores s ON s.id = sal.store_id
      ORDER BY sal.id DESC
      LIMIT 12"
 );
 $specialAccessLinks = $specialAccessStmt->fetchAll();
-
 
 function e($value): string
 {
