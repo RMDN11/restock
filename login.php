@@ -1781,7 +1781,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
                     <div class="flex items-center justify-between -mt-2 mb-1 gap-4">
-                        <a href="/daftar.php" class="text-xs font-medium text-neutral-500 hover:text-neutral-900">Belum punya akun? Daftar</a>
+                        <a href="/daftar-pilih.php" class="text-xs font-medium text-neutral-500 hover:text-neutral-900">Belum punya akun? Daftar</a>
                         <a href="/forgot-password.php" class="text-xs font-medium text-neutral-500 hover:text-neutral-900">Lupa password?</a>
                     </div>
 
