@@ -11,7 +11,7 @@ function e(string|int|float|null $value): string
 }
 
 $stmt = $pdo->prepare(
-    "SELECT id, name, slug, price, duration_days, description
+    "SELECT id, name, slug, price, duration_days, min_store_count, max_store_count, description
      FROM packages
      WHERE status = 'ACTIVE'
      ORDER BY price ASC, id ASC"
@@ -62,7 +62,7 @@ $baseUrl = '/daftar.php';
                 RESTOCK
             </p>
             <h1 class="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-                Pilih paket untuk toko kamu
+                Pilih paket RESTOCK
             </h1>
             <p class="mt-3 text-sm leading-6 text-neutral-500 sm:text-base">
                 Pilih paket yang sesuai. Harga dan durasi di halaman ini berasal langsung dari paket yang sedang aktif di sistem.
@@ -113,6 +113,12 @@ $baseUrl = '/daftar.php';
                             </p>
                             <p class="mt-1 text-sm text-neutral-500">
                                 <?= number_format((int) $package['duration_days']) ?> hari
+                                <?php if ($package['min_store_count'] !== null): ?>
+                                    · mulai <?= number_format((int) $package['min_store_count']) ?> toko
+                                <?php endif; ?>
+                                <?php if ($package['max_store_count'] !== null): ?>
+                                    · sampai <?= number_format((int) $package['max_store_count']) ?> toko
+                                <?php endif; ?>
                             </p>
                         </div>
 
@@ -141,7 +147,7 @@ $baseUrl = '/daftar.php';
         </section>
 
         <p class="mt-8 text-center text-xs leading-5 text-neutral-400">
-            Paket yang tidak aktif tidak ditampilkan pada halaman pendaftaran.
+            Harga paket dapat disesuaikan berdasarkan jumlah toko yang dicakup.
         </p>
     </main>
 
