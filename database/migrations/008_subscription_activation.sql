@@ -3,8 +3,8 @@
 
 CREATE TABLE IF NOT EXISTS subscriptions (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    account_id INT UNSIGNED NOT NULL,
-    store_id INT UNSIGNED NOT NULL,
+    account_id BIGINT UNSIGNED NOT NULL,
+    store_id BIGINT UNSIGNED NOT NULL,
     package_id INT UNSIGNED NOT NULL,
     payment_id BIGINT UNSIGNED NOT NULL,
     starts_at DATETIME NOT NULL,
