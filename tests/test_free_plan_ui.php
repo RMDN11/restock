@@ -14,7 +14,6 @@ $page = file_get_contents($file);
 $nav = file_get_contents($sidebar);
 
 $needles = [
-    "CREATE TABLE IF NOT EXISTS free_plan_invites",
     "INSERT INTO free_plan_invites",
     "max_uses",
     "invite_expiry",
