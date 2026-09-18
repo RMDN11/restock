@@ -91,24 +91,7 @@ if ($packageId !== null) {
     $selectedPackage = findActivePackage($pdo, $packageId);
 }
 
-$packageStoreCoverageError = '';
-if ($selectedPackage) {
-    $requestedCoverage = 1;
 
-    if (
-        $selectedPackage['min_store_count'] !== null &&
-        $requestedCoverage < (int) $selectedPackage['min_store_count']
-    ) {
-        $packageStoreCoverageError = 'Paket ini memiliki cakupan minimum ' . (int) $selectedPackage['min_store_count'] . ' toko.';
-    }
-
-    if (
-        $selectedPackage['max_store_count'] !== null &&
-        $requestedCoverage > (int) $selectedPackage['max_store_count']
-    ) {
-        $packageStoreCoverageError = 'Paket ini hanya mencakup maksimal ' . (int) $selectedPackage['max_store_count'] . ' toko.';
-    }
-}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postedToken = (string) ($_POST['csrf_token'] ?? '');
