@@ -6,6 +6,13 @@ $isStores = strpos($currentPath, '/developer/stores/') === 0;
 ?>
 <aside id="developerSidebar" class="fixed z-50 inset-y-0 left-0 w-64 bg-white border-r border-neutral-200 pt-16 transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-out">
     <div class="h-full flex flex-col p-3 overflow-y-auto">
+        <a href="/developer/" class="flex items-center gap-3 px-3 py-3 mb-2 rounded-xl hover:bg-neutral-50">
+            <img src="/assets/images/logo.png" alt="RESTOCK" class="w-8 h-8 object-contain">
+            <div class="leading-tight">
+                <div class="font-semibold tracking-tight text-sm">RESTOCK</div>
+                <div class="text-[10px] uppercase tracking-[0.16em] text-neutral-400">Developer</div>
+            </div>
+        </a>
         <nav class="space-y-1">
             <p class="px-3 pt-2 pb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-400">Main</p>
             <a href="/developer/" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm <?= $isOverview ? 'bg-neutral-50 font-medium text-neutral-900' : 'text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900' ?>">
