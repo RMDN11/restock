@@ -212,6 +212,7 @@ if ($isSubscriptionGated) {
     $hasSpecialAccess = restockHasSpecialAccess(
         $pdo,
         $userId,
+        (int) $membership['account_id'],
         (int) $membership['store_id']
     );
 
