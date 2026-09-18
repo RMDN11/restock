@@ -12,6 +12,8 @@ $slug = '';
 $price = '';
 $durationDays = '';
 $description = '';
+$minStoreCount = '';
+$maxStoreCount = '';
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -24,6 +26,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $price = trim((string) ($_POST['price'] ?? ''));
     $durationDays = trim((string) ($_POST['duration_days'] ?? ''));
     $description = trim((string) ($_POST['description'] ?? ''));
+    $minStoreCount = trim((string) ($_POST['min_store_count'] ?? ''));
+    $maxStoreCount = trim((string) ($_POST['max_store_count'] ?? ''));
 
     if ($name === '' || mb_strlen($name) > 100) $errors[] = 'Nama paket wajib diisi dan maksimal 100 karakter.';
     if ($slug === '' || !preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug) || mb_strlen($slug) > 120) {
@@ -42,13 +46,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$errors) {
-        $stmt = $pdo->prepare("INSERT INTO packages (name, slug, price, duration_days, description, status, created_at, updated_at)
-            VALUES (:name, :slug, :price, :duration_days, :description, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
+        $minStoreNumber = $minStoreCount === '' ? null : filter_var($minStoreCount, FILTER_VALIDATE_INT);
+        $maxStoreNumber = $maxStoreCount === '' ? null : filter_var($maxStoreCount, FILTER_VALIDATE_INT);
+        if ($minStoreCount !== '' && ($minStoreNumber === false || $minStoreNumber < 1)) $errors[] = 'Minimal jumlah toko tidak valid.';
+        if ($maxStoreCount !== '' && ($maxStoreNumber === false || $maxStoreNumber < 1)) $errors[] = 'Maksimal jumlah toko tidak valid.';
+        if (!$errors && $maxStoreNumber !== null && $minStoreNumber !== null && $maxStoreNumber < $minStoreNumber) $errors[] = 'Maksimal jumlah toko tidak boleh kurang dari minimal.';
+    }
+
+    if (!$errors) {
+        $stmt = $pdo->prepare("INSERT INTO packages (name, slug, price, duration_days, min_store_count, max_store_count, description, status, created_at, updated_at)
+            VALUES (:name, :slug, :price, :duration_days, :min_store_count, :max_store_count, :description, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
         $stmt->execute([
             ':name' => $name,
             ':slug' => $slug,
             ':price' => number_format((float) $priceNumber, 2, '.', ''),
             ':duration_days' => $durationNumber,
+            ':min_store_count' => $minStoreNumber,
+            ':max_store_count' => $maxStoreNumber,
             ':description' => $description !== '' ? $description : null
         ]);
         $_SESSION['flash_success'] = 'Paket berhasil ditambahkan.';
