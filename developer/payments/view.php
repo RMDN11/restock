@@ -82,11 +82,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new RuntimeException('Durasi paket tidak valid.');
                 }
 
+                $startsDate = new DateTimeImmutable((string) $startsAt);
+                $endsAt = $startsDate->modify('+' . $durationDays . ' days')->format('Y-m-d H:i:s');
+
                 $insert = $pdo->prepare("INSERT INTO subscriptions
                     (account_id, store_id, package_id, payment_id, starts_at, ends_at, status, created_at, updated_at)
                     VALUES
-                    (:account_id, :store_id, :package_id, :payment_id, :starts_at,
-                     DATE_ADD(:ends_at_base, INTERVAL :duration_days DAY),
+                    (:account_id, :store_id, :package_id, :payment_id, :starts_at, :ends_at,
                      'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
                 $insert->execute([
                     ':account_id'=>$paymentInfo['account_id'],
@@ -94,8 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':package_id'=>$paymentInfo['package_id'],
                     ':payment_id'=>$paymentId,
                     ':starts_at'=>$startsAt,
-                    ':ends_at_base'=>$startsAt,
-                    ':duration_days'=>$durationDays,
+                    ':ends_at'=>$endsAt,
                 ]);
             }
 
