@@ -94,6 +94,15 @@ if ($packageId !== null) {
     $selectedPackage = findActivePackage($pdo, $packageId);
 }
 
+$registrationPackagesStmt = $pdo->prepare(
+    "SELECT id, name, price, duration_days, min_store_count, max_store_count, description
+     FROM packages
+     WHERE status = 'ACTIVE'
+     ORDER BY price ASC, id ASC"
+);
+$registrationPackagesStmt->execute();
+$registrationPackages = $registrationPackagesStmt->fetchAll();
+
 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -179,7 +188,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($freePlanToken === '') {
         if ($packageId === null || $packageId <= 0) {
-            $errors[] = 'Pilih paket terlebih dahulu sebelum membuat akun.';
+            // Package selection is shown as the first registration step.
         } else {
             $selectedPackage = findActivePackage($pdo, $packageId);
             if (!$selectedPackage) {
@@ -354,6 +363,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             <?php endif; ?>
 
+<?php if ($freePlanToken === '' && $packageId === null): ?>
+                <div class="mb-6">
+                    <div class="section-title">Pilih Paket</div>
+                    <p class="mt-2 text-sm leading-6 text-neutral-500">
+                        Pilih paket terlebih dahulu. Setelah itu baru isi data akun dan toko.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <?php if (!$registrationPackages): ?>
+                        <div class="rounded-2xl border border-neutral-200 bg-neutral-50 p-5 text-sm text-neutral-500 md:col-span-2">
+                            Belum ada paket aktif yang tersedia.
+                        </div>
+                    <?php endif; ?>
+
+                    <?php foreach ($registrationPackages as $package): ?>
+                        <a href="/daftar.php?package_id=<?= (int) $package['id'] ?>"
+                           class="group rounded-2xl border border-neutral-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-sm">
+                            <div class="flex items-start justify-between gap-4">
+                                <div>
+                                    <h2 class="text-base font-semibold text-neutral-900"><?= e($package['name']) ?></h2>
+                                    <p class="mt-1 text-xs text-neutral-400">
+                                        <?= (int) $package['duration_days'] ?> hari
+                                        <?php if ($package['min_store_count'] !== null): ?> · mulai <?= (int) $package['min_store_count'] ?> toko<?php endif; ?>
+                                        <?php if ($package['max_store_count'] !== null): ?> · sampai <?= (int) $package['max_store_count'] ?> toko<?php endif; ?>
+                                    </p>
+                                </div>
+                                <span class="shrink-0 rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-700">Pilih</span>
+                            </div>
+                            <p class="mt-5 text-2xl font-semibold tracking-tight text-neutral-900">
+                                Rp <?= number_format((float) $package['price'], 0, ',', '.') ?>
+                            </p>
+                            <?php if (!empty($package['description'])): ?>
+                                <p class="mt-3 text-sm leading-6 text-neutral-500"><?= e($package['description']) ?></p>
+                            <?php endif; ?>
+                            <div class="mt-5 flex items-center gap-2 text-sm font-semibold text-neutral-900">
+                                Lanjutkan
+                                <i data-lucide="arrow-right" class="h-4 w-4 transition-transform group-hover:translate-x-1"></i>
+                            </div>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+<?php else: ?>
             <form method="POST" id="registerForm" novalidate>
                 <input type="hidden" name="csrf_token" value="<?= e($csrfToken) ?>">
                 <input type="hidden" name="package_id" value="<?= e($packageId) ?>">
@@ -438,6 +490,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <button class="register-button" type="submit" id="registerButton">Buat Akun &amp; Toko</button>
                 </div>
             </form>
+
+
+<?php endif; ?>
 
             <div class="text-center text-sm text-neutral-500 mt-5">
                 Sudah punya akun?
