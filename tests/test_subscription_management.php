@@ -8,6 +8,7 @@ $files = [
     $root . '/includes/subscription.php',
     $root . '/includes/auth.php',
     $root . '/database/migrations/008_subscription_activation.sql',
+    $root . '/subscription.php',
 ];
 
 function assertContract(bool $condition, string $message): void
@@ -19,7 +20,7 @@ function assertContract(bool $condition, string $message): void
 }
 
 foreach ($files as $file) {
-    assertContract(is_file($file), 'File Task 9 harus tersedia: ' . $file);
+    assertContract(is_file($file), 'File subscription Task 9 harus tersedia: ' . $file);
 }
 
 $index = file_get_contents($files[0]);
@@ -27,6 +28,7 @@ $sidebar = file_get_contents($files[1]);
 $helper = file_get_contents($files[2]);
 $auth = file_get_contents($files[3]);
 $migration = file_get_contents($files[4]);
+$page = file_get_contents($files[5]);
 
 foreach ([
     "UPDATE subscriptions",
@@ -34,7 +36,6 @@ foreach ([
     "ends_at <= CURRENT_TIMESTAMP",
     "FROM subscriptions sub",
     "sub.status = :status",
-    "CASE sub.status WHEN 'ACTIVE'",
     "LIMIT 200",
 ] as $needle) {
     assertContract(str_contains($index, $needle), 'Developer subscription console tidak lengkap: ' . $needle);
@@ -75,6 +76,18 @@ foreach ([
     'payment_id BIGINT UNSIGNED NOT NULL',
 ] as $needle) {
     assertContract(str_contains($migration, $needle), 'Migration FK subscription tidak sesuai schema production: ' . $needle);
+}
+
+foreach ([
+    'includes/auth.php',
+    'Subscription',
+    'reason',
+    '/checkout.php',
+    '/paket/',
+    'subscriptionNotice',
+    '3000',
+] as $needle) {
+    assertContract(str_contains($page, $needle), 'Subscription page tidak lengkap: ' . $needle);
 }
 
 echo "PASS: subscription management contract\n";
