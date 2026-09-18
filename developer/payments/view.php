@@ -41,12 +41,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        $stmt = $pdo->prepare("UPDATE payments
-            SET status='VERIFIED', verified_by=:verified_by, verified_at=CURRENT_TIMESTAMP,
-                rejection_reason=NULL, updated_at=CURRENT_TIMESTAMP
-            WHERE id=:id AND status='PENDING'");
-        $stmt->execute([':verified_by'=>$authUserId, ':id'=>$paymentId]);
-        $_SESSION['payment_flash_success'] = 'Pembayaran berhasil diverifikasi.';
+        try {
+            $pdo->beginTransaction();
+
+            $stmt = $pdo->prepare("UPDATE payments
+                SET status='VERIFIED', verified_by=:verified_by, verified_at=CURRENT_TIMESTAMP,
+                    rejection_reason=NULL, updated_at=CURRENT_TIMESTAMP
+                WHERE id=:id AND status='PENDING'");
+            $stmt->execute([':verified_by'=>$authUserId, ':id'=>$paymentId]);
+
+            if ($stmt->rowCount() !== 1) {
+                throw new RuntimeException('Pembayaran sudah diproses.');
+            }
+
+            $paymentInfoStmt = $pdo->prepare("SELECT account_id, store_id, package_id FROM payments WHERE id=:id LIMIT 1");
+            $paymentInfoStmt->execute([':id'=>$paymentId]);
+            $paymentInfo = $paymentInfoStmt->fetch();
+            if (!$paymentInfo) {
+                throw new RuntimeException('Data pembayaran tidak ditemukan.');
+            }
+
+            $existingStmt = $pdo->prepare("SELECT id FROM subscriptions WHERE payment_id=:payment_id LIMIT 1");
+            $existingStmt->execute([':payment_id'=>$paymentId]);
+
+            if (!$existingStmt->fetchColumn()) {
+                $startStmt = $pdo->prepare("SELECT GREATEST(
+                    CURRENT_TIMESTAMP,
+                    COALESCE(MAX(CASE WHEN status='ACTIVE' AND ends_at>CURRENT_TIMESTAMP THEN ends_at END), CURRENT_TIMESTAMP)
+                ) FROM subscriptions WHERE account_id=:account_id AND store_id=:store_id");
+                $startStmt->execute([
+                    ':account_id'=>$paymentInfo['account_id'],
+                    ':store_id'=>$paymentInfo['store_id'],
+                ]);
+                $startsAt = $startStmt->fetchColumn();
+
+                $durationStmt = $pdo->prepare("SELECT duration_days FROM packages WHERE id=:package_id LIMIT 1");
+                $durationStmt->execute([':package_id'=>$paymentInfo['package_id']]);
+                $durationDays = (int)$durationStmt->fetchColumn();
+                if ($durationDays < 1) {
+                    throw new RuntimeException('Durasi paket tidak valid.');
+                }
+
+                $startsDate = new DateTimeImmutable((string) $startsAt);
+                $endsAt = $startsDate->modify('+' . $durationDays . ' days')->format('Y-m-d H:i:s');
+
+                $insert = $pdo->prepare("INSERT INTO subscriptions
+                    (account_id, store_id, package_id, payment_id, starts_at, ends_at, status, created_at, updated_at)
+                    VALUES
+                    (:account_id, :store_id, :package_id, :payment_id, :starts_at, :ends_at,
+                     'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
+                $insert->execute([
+                    ':account_id'=>$paymentInfo['account_id'],
+                    ':store_id'=>$paymentInfo['store_id'],
+                    ':package_id'=>$paymentInfo['package_id'],
+                    ':payment_id'=>$paymentId,
+                    ':starts_at'=>$startsAt,
+                    ':ends_at'=>$endsAt,
+                ]);
+            }
+
+            $pdo->commit();
+            $_SESSION['payment_flash_success'] = 'Pembayaran diverifikasi dan subscription diaktifkan.';
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            $_SESSION['payment_flash_error'] = 'Verifikasi gagal diproses. Tidak ada perubahan yang disimpan.';
+        }
     } else {
         $reason = trim((string) ($_POST['rejection_reason'] ?? ''));
         if ($reason === '' || mb_strlen($reason) > 500) {
@@ -82,6 +141,10 @@ WHERE pay.id=:id LIMIT 1");
 $stmt->execute([':id'=>$paymentId]);
 $payment = $stmt->fetch();
 
+$subscriptionStmt = $pdo->prepare("SELECT id, starts_at, ends_at, status FROM subscriptions WHERE payment_id=:payment_id LIMIT 1");
+$subscriptionStmt->execute([':payment_id'=>$paymentId]);
+$subscription = $subscriptionStmt->fetch();
+
 if (!$payment) { http_response_code(404); exit('Pembayaran tidak ditemukan.'); }
 $statusClass = match ($payment['status']) { 'PENDING'=>'text-amber-700 bg-amber-50', 'VERIFIED'=>'text-emerald-700 bg-emerald-50', 'REJECTED'=>'text-red-700 bg-red-50', default=>'text-neutral-600 bg-neutral-100' };
 
@@ -104,6 +167,16 @@ require_once __DIR__ . '/../includes/sidebar.php';
 <div><dt class="text-xs text-neutral-400">User</dt><dd class="mt-1 font-medium"><?= e($payment['user_name'] ?: '-') ?></dd></div>
 <div><dt class="text-xs text-neutral-400">Email</dt><dd class="mt-1 font-medium break-all"><?= e($payment['user_email'] ?: '-') ?></dd></div>
 </dl>
+<?php if ($subscription): ?>
+<div class="mt-6 border-t border-neutral-100 pt-5">
+<h3 class="font-medium text-sm">Subscription</h3>
+<div class="mt-3 grid grid-cols-2 gap-4 text-sm">
+<div><p class="text-xs text-neutral-400">Mulai</p><p class="mt-1 font-medium"><?= e(date('d M Y, H:i', strtotime($subscription['starts_at']))) ?></p></div>
+<div><p class="text-xs text-neutral-400">Berakhir</p><p class="mt-1 font-medium"><?= e(date('d M Y, H:i', strtotime($subscription['ends_at']))) ?></p></div>
+</div>
+<p class="mt-3 text-xs text-neutral-500">Status subscription: <?= e($subscription['status']) ?></p>
+</div>
+<?php endif; ?>
 <div class="mt-6 border-t border-neutral-100 pt-5"><h3 class="font-medium text-sm">Bukti Pembayaran</h3>
 <?php if ($payment['proof_file']): ?><p class="mt-3 text-sm break-all"><?= e($payment['proof_file']) ?></p><?php else: ?><p class="mt-3 text-sm text-neutral-400">Belum ada bukti pembayaran.</p><?php endif; ?>
 </div></section>
