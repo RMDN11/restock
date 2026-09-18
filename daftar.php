@@ -49,6 +49,7 @@ $slug = '';
 $packageId = null;
 $selectedPackage = null;
 $freePlanToken = trim((string) ($_GET['free_token'] ?? ''));
+$freeRegistration = (string) ($_GET['free'] ?? '') === '1';
 $freePlanInvite = $freePlanToken !== '' ? restockFreePlanFindInvite($pdo, $freePlanToken) : null;
 $errors = [];
 
@@ -119,6 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $storeName = trim((string) ($_POST['store_name'] ?? ''));
     $slug = trim((string) ($_POST['slug'] ?? ''));
     $freePlanToken = trim((string) ($_POST['free_token'] ?? $freePlanToken));
+    $freeRegistration = (string) ($_POST['free_registration'] ?? ($freeRegistration ? '1' : '')) === '1';
 
     if ($_POST['package_id'] ?? null) {
         $postedPackageId = filter_var($_POST['package_id'], FILTER_VALIDATE_INT);
@@ -186,7 +188,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Slug hanya boleh berisi huruf kecil, angka, dan tanda hubung.';
     }
 
-    if ($freePlanToken === '') {
+    if ($freePlanToken === '' && !$freeRegistration) {
         if ($packageId === null || $packageId <= 0) {
             // Package selection is shown as the first registration step.
         } else {
@@ -195,6 +197,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors[] = 'Paket yang dipilih tidak tersedia atau sudah tidak aktif. Silakan pilih paket lain.';
             }
         }
+    }
+
+    if ($freeRegistration && $freePlanToken === '') {
+        $packageId = null;
+        $selectedPackage = null;
     }
 
     if (!$errors) {
@@ -223,10 +230,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->beginTransaction();
 
             $accountStmt = $pdo->prepare(
-                "INSERT INTO accounts (name, status, created_at, updated_at)
-                 VALUES (:account_name, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+                "INSERT INTO accounts (name, status, plan_type, free_plan_expires_at, free_plan_source, created_at, updated_at)
+                 VALUES (:account_name, 'ACTIVE', :plan_type, :free_plan_expires_at, :free_plan_source, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
             );
-            $accountStmt->execute([':account_name' => $name]);
+            $accountStmt->execute([
+                ':account_name' => $name,
+                ':plan_type' => ($freeRegistration && $freePlanToken === '') ? 'FREE' : 'PAID',
+                ':free_plan_expires_at' => null,
+                ':free_plan_source' => ($freeRegistration && $freePlanToken === '') ? 'public-registration' : null,
+            ]);
             $accountId = (int) $pdo->lastInsertId();
 
             if ($freePlanToken !== '') {
@@ -284,10 +296,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['store_id'] = $storeId;
             $_SESSION['store_name'] = $storeName;
             $_SESSION['store_slug'] = $slug;
-            $_SESSION['selected_package_id'] = $freePlanToken !== '' ? null : $packageId;
+            $_SESSION['selected_package_id'] = ($freePlanToken !== '' || $freeRegistration) ? null : $packageId;
             $_SESSION['login_at'] = time();
 
             if ($freePlanToken !== '') {
+                header('Location: /?free_plan=activated');
+                exit;
+            }
+
+            if ($freeRegistration) {
                 header('Location: /?free_plan=activated');
                 exit;
             }
@@ -410,6 +427,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="hidden" name="csrf_token" value="<?= e($csrfToken) ?>">
                 <input type="hidden" name="package_id" value="<?= e($packageId) ?>">
                 <input type="hidden" name="free_token" value="<?= e($freePlanToken) ?>">
+        <input type="hidden" name="free_registration" value="<?= $freeRegistration ? '1' : '0' ?>">
 <?php if ($freePlanToken !== '' && $freePlanInvite): ?>
                     <div class="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
                         <div class="flex items-start gap-3">
