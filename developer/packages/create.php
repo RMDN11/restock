@@ -121,6 +121,10 @@ require_once __DIR__ . '/../includes/sidebar.php';
                 <input id="max_store_count" name="max_store_count" type="number" min="1" value="<?= e($maxStoreCount) ?>" class="w-full h-11 rounded-xl border border-neutral-200 px-4 text-sm outline-none focus:border-neutral-400" placeholder="Kosong = tanpa batas">
             </div>
         </div>
+        <div class="rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+            <p class="text-xs font-semibold uppercase tracking-[0.12em] text-neutral-400">Cakupan Toko</p>
+            <p class="text-xs text-neutral-500 mt-1">Gunakan rentang jumlah toko untuk membuat harga berbeda per skala. Kosongkan keduanya untuk paket yang berlaku umum.</p>
+        </div>
         <div>
             <label class="block text-sm font-medium mb-2" for="description">Deskripsi</label>
             <textarea id="description" name="description" rows="4" class="w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm outline-none focus:border-neutral-400" placeholder="Deskripsi paket untuk pelanggan..."><?= e($description) ?></textarea>
