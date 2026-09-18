@@ -427,8 +427,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="hidden" name="csrf_token" value="<?= e($csrfToken) ?>">
                 <input type="hidden" name="package_id" value="<?= e($packageId) ?>">
                 <input type="hidden" name="free_token" value="<?= e($freePlanToken) ?>">
+                <input type="hidden" name="free_registration" value="<?= $freeRegistration ? '1' : '0' ?>">
         <input type="hidden" name="free_registration" value="<?= $freeRegistration ? '1' : '0' ?>">
-<?php if ($freePlanToken !== '' && $freePlanInvite): ?>
+<?php if ($freeRegistration): ?>
+                    <div class="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                        <div class="flex items-start gap-3">
+                            <i data-lucide="gift" class="w-5 h-5 text-emerald-700 mt-0.5 shrink-0"></i>
+                            <div>
+                                <p class="text-sm font-semibold text-emerald-900">Free Plan</p>
+                                <p class="text-xs text-emerald-800 mt-1">Gratis untuk 1 owner dan 1 toko. Setelah daftar, kamu bisa langsung menggunakan RESTOCK tanpa pembayaran.</p>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <?php if ($freePlanToken !== '' && $freePlanInvite): ?>
                     <div class="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
                         <div class="flex items-start gap-3">
                             <i data-lucide="gift" class="w-5 h-5 text-emerald-700 mt-0.5 shrink-0"></i>
