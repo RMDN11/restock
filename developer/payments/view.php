@@ -31,6 +31,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'VERIFY') {
+        $proofStmt = $pdo->prepare("SELECT proof_file FROM payments WHERE id = :payment_id LIMIT 1");
+        $proofStmt->execute([':payment_id' => $paymentId]);
+        $proofFile = $proofStmt->fetchColumn();
+
+        if (empty($proofFile)) {
+            $_SESSION['payment_flash_error'] = 'Pembayaran belum memiliki bukti transfer.';
+            header('Location: /developer/payments/view.php?id=' . $paymentId);
+            exit;
+        }
+
         $stmt = $pdo->prepare("UPDATE payments
             SET status='VERIFIED', verified_by=:verified_by, verified_at=CURRENT_TIMESTAMP,
                 rejection_reason=NULL, updated_at=CURRENT_TIMESTAMP
