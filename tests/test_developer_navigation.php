@@ -13,22 +13,26 @@ $checks = [
     'developer footer include' => "require_once __DIR__ . '/includes/footer.php'",
     'developer overview nav' => '>Overview<',
     'accounts nav' => '/developer/accounts/',
+    'stores nav' => '/developer/stores/',
     'logout nav' => '/logout.php',
     'mobile menu' => 'developerMenuToggle',
     'mobile sidebar behavior' => 'developerSidebarOverlay',
 ];
 
 $failures = [];
+$haystack = $index . $sidebar . $header . $footer;
+
 foreach ($checks as $label => $needle) {
-    $haystack = $index . $sidebar . $header . $footer;
-    if (strpos($haystack, $needle) === false) $failures[] = $label;
+    if (strpos($haystack, $needle) === false) {
+        $failures[] = $label;
+    }
 }
 
 if (strpos($sidebar, '/pages/barang') !== false || strpos($sidebar, '/pages/penjualan') !== false) {
     $failures[] = 'customer navigation leaked into developer sidebar';
 }
 
-foreach (['/developer/stores/', '/developer/users/', '/developer/payments/', '/developer/settings/'] as $unavailableRoute) {
+foreach (['/developer/users/', '/developer/payments/', '/developer/settings/'] as $unavailableRoute) {
     if (strpos($sidebar, $unavailableRoute) !== false) {
         $failures[] = 'unavailable Developer route remains in sidebar: ' . $unavailableRoute;
     }
