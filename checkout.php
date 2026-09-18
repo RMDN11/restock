@@ -40,7 +40,7 @@ if (empty($_SESSION['checkout_csrf_token'])) {
 $csrfToken = $_SESSION['checkout_csrf_token'];
 
 $packageStmt = $pdo->prepare(
-    "SELECT id, name, slug, price, duration_days, description
+    "SELECT id, name, slug, price, duration_days, min_store_count, max_store_count, description
      FROM packages
      WHERE id = :package_id AND status = 'ACTIVE' LIMIT 1"
 );

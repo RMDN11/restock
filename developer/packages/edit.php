@@ -7,7 +7,7 @@ function e($value): string { return htmlspecialchars((string) $value, ENT_QUOTES
 $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 if (!$id || $id < 1) { header('Location: /developer/packages/'); exit; }
 
-$stmt = $pdo->prepare('SELECT id, name, slug, price, duration_days, description, status FROM packages WHERE id = :id LIMIT 1');
+$stmt = $pdo->prepare('SELECT id, name, slug, price, duration_days, min_store_count, max_store_count, description, status FROM packages WHERE id = :id LIMIT 1');
 $stmt->execute([':id' => $id]);
 $package = $stmt->fetch();
 
@@ -21,6 +21,8 @@ $slug = (string) $package['slug'];
 $price = (string) $package['price'];
 $durationDays = (string) $package['duration_days'];
 $description = (string) ($package['description'] ?? '');
+$minStoreCount = (string) ($package['min_store_count'] ?? '');
+$maxStoreCount = (string) ($package['max_store_count'] ?? '');
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -31,6 +33,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $price = trim((string) ($_POST['price'] ?? ''));
     $durationDays = trim((string) ($_POST['duration_days'] ?? ''));
     $description = trim((string) ($_POST['description'] ?? ''));
+    $minStoreCount = trim((string) ($_POST['min_store_count'] ?? ''));
+    $maxStoreCount = trim((string) ($_POST['max_store_count'] ?? ''));
 
     if ($name === '' || mb_strlen($name) > 100) $errors[] = 'Nama paket wajib diisi dan maksimal 100 karakter.';
     if ($slug === '' || !preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug) || mb_strlen($slug) > 120) $errors[] = 'Slug wajib berisi huruf kecil, angka, dan strip.';
@@ -47,14 +51,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$errors) {
+        $minStoreNumber = $minStoreCount === '' ? null : filter_var($minStoreCount, FILTER_VALIDATE_INT);
+        $maxStoreNumber = $maxStoreCount === '' ? null : filter_var($maxStoreCount, FILTER_VALIDATE_INT);
+        if ($minStoreCount !== '' && ($minStoreNumber === false || $minStoreNumber < 1)) $errors[] = 'Minimal jumlah toko tidak valid.';
+        if ($maxStoreCount !== '' && ($maxStoreNumber === false || $maxStoreNumber < 1)) $errors[] = 'Maksimal jumlah toko tidak valid.';
+        if (!$errors && $maxStoreNumber !== null && $minStoreNumber !== null && $maxStoreNumber < $minStoreNumber) $errors[] = 'Maksimal jumlah toko tidak boleh kurang dari minimal.';
+    }
+
+    if (!$errors) {
         $stmt = $pdo->prepare("UPDATE packages SET name = :name, slug = :slug, price = :price, duration_days = :duration_days,
-            description = :description, updated_at = CURRENT_TIMESTAMP WHERE id = :id");
+            description = :description, min_store_count = :min_store_count, max_store_count = :max_store_count, updated_at = CURRENT_TIMESTAMP WHERE id = :id");
         $stmt->execute([
             ':name' => $name,
             ':slug' => $slug,
             ':price' => number_format((float) $priceNumber, 2, '.', ''),
             ':duration_days' => $durationNumber,
             ':description' => $description !== '' ? $description : null,
+            ':min_store_count' => $minStoreNumber,
+            ':max_store_count' => $maxStoreNumber,
             ':id' => $id
         ]);
         $_SESSION['flash_success'] = 'Paket berhasil diperbarui.';

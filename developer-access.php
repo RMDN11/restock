@@ -36,6 +36,7 @@ $stmt = $pdo->prepare(
         sal.store_id,
         sal.expires_at,
         sal.status,
+        sal.access_scope,
         s.name AS store_name,
         a.name AS account_name
      FROM special_access_links sal
@@ -43,7 +44,7 @@ $stmt = $pdo->prepare(
      INNER JOIN accounts a ON a.id = sal.account_id
      WHERE sal.token_hash = :token_hash
        AND sal.status = 'ACTIVE'
-       AND sal.expires_at > CURRENT_TIMESTAMP
+       AND (sal.expires_at IS NULL OR sal.expires_at > CURRENT_TIMESTAMP)
        AND s.status = 'ACTIVE'
        AND a.status = 'ACTIVE'
      LIMIT 1"
@@ -65,32 +66,46 @@ if ((int) ($_SESSION['user_id'] ?? 0) <= 0) {
 /* Login session hanya boleh mengaktifkan link untuk membership store yang sesuai. */
 $userId = (int) $_SESSION['user_id'];
 
-$membershipStmt = $pdo->prepare(
-    "SELECT su.store_id
-     FROM store_users su
-     INNER JOIN stores s ON s.id = su.store_id
-     INNER JOIN accounts a ON a.id = s.account_id
-     WHERE su.user_id = :user_id
-       AND su.store_id = :store_id
-       AND su.status = 'ACTIVE'
-       AND s.status = 'ACTIVE'
-       AND a.status = 'ACTIVE'
-     LIMIT 1"
-);
-$membershipStmt->execute([
-    ':user_id' => $userId,
-    ':store_id' => (int) $link['store_id'],
-]);
+$membershipSql = "SELECT su.store_id
+    FROM store_users su
+    INNER JOIN stores s ON s.id = su.store_id
+    INNER JOIN accounts a ON a.id = s.account_id
+    WHERE su.user_id = :user_id
+      AND s.account_id = :account_id
+      AND su.status = 'ACTIVE'
+      AND s.status = 'ACTIVE'
+      AND a.status = 'ACTIVE'";
 
-if (!$membershipStmt->fetch()) {
-    http_response_code(403);
-    exit('Akun ini tidak memiliki akses ke store tujuan.');
+if ($link['access_scope'] === 'STORE') {
+    $membershipSql .= " AND su.store_id = :store_id";
 }
 
-$_SESSION['store_id'] = (int) $link['store_id'];
+$membershipSql .= " LIMIT 1";
+
+$membershipStmt = $pdo->prepare($membershipSql);
+$membershipParams = [
+    ':user_id' => $userId,
+    ':account_id' => (int) $link['account_id'],
+];
+
+if ($link['access_scope'] === 'STORE') {
+    $membershipParams[':store_id'] = (int) $link['store_id'];
+}
+
+$membershipStmt->execute($membershipParams);
+$membership = $membershipStmt->fetch();
+
+if (!$membership) {
+    http_response_code(403);
+    exit($link['access_scope'] === 'ACCOUNT'
+        ? 'Akun ini belum memiliki toko aktif pada account tujuan.'
+        : 'Akun ini tidak memiliki akses ke store tujuan.');
+}
+
+$_SESSION['store_id'] = (int) $membership['store_id'];
 $_SESSION['account_id'] = (int) $link['account_id'];
 $_SESSION['special_access_token'] = $token;
-$_SESSION['special_access_store_id'] = (int) $link['store_id'];
+$_SESSION['special_access_store_id'] = (int) $membership['store_id'];
 
 header('Location: /');
 exit;

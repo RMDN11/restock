@@ -126,3 +126,37 @@ function restockRequireActiveSubscription(
         exit;
     }
 }
+
+function restockGetActiveStoreCount(PDO $pdo, int $accountId): int
+{
+    if ($accountId <= 0) {
+        return 0;
+    }
+
+    $stmt = $pdo->prepare(
+        "SELECT COUNT(*)
+         FROM stores
+         WHERE account_id = :account_id
+           AND status = 'ACTIVE'"
+    );
+    $stmt->execute([':account_id' => $accountId]);
+
+    return (int) $stmt->fetchColumn();
+}
+
+function restockPackageCoversStoreCount(array $package, int $storeCount): bool
+{
+    if ($storeCount < 1) {
+        return false;
+    }
+
+    if ($package['min_store_count'] !== null && $storeCount < (int) $package['min_store_count']) {
+        return false;
+    }
+
+    if ($package['max_store_count'] !== null && $storeCount > (int) $package['max_store_count']) {
+        return false;
+    }
+
+    return true;
+}

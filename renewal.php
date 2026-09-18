@@ -16,7 +16,7 @@ function rupiah($value): string
 }
 
 $stmt = $pdo->prepare(
-    "SELECT id, name, slug, price, duration_days, description
+    "SELECT id, name, slug, price, duration_days, min_store_count, max_store_count, description
      FROM packages
      WHERE status = 'ACTIVE'
      ORDER BY price ASC, id ASC"
@@ -78,7 +78,11 @@ $activeSubscription = restockGetActiveSubscription(
                 <article class="bento-card flex flex-col p-5 sm:p-6">
                     <div>
                         <h2 class="text-xl font-semibold tracking-tight"><?= e($package['name']) ?></h2>
-                        <p class="mt-1 text-xs text-neutral-400"><?= (int) $package['duration_days'] ?> hari</p>
+                        <p class="mt-1 text-xs text-neutral-400">
+                            <?= (int) $package['duration_days'] ?> hari
+                            <?php if ($package['min_store_count'] !== null): ?> · mulai <?= (int) $package['min_store_count'] ?> toko<?php endif; ?>
+                            <?php if ($package['max_store_count'] !== null): ?> · sampai <?= (int) $package['max_store_count'] ?> toko<?php endif; ?>
+                        </p>
                         <p class="mt-6 text-3xl font-semibold tracking-tight"><?= rupiah($package['price']) ?></p>
                         <?php if (!empty($package['description'])): ?>
                             <p class="mt-4 text-sm leading-6 text-neutral-500"><?= e($package['description']) ?></p>

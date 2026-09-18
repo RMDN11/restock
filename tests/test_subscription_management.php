@@ -9,6 +9,7 @@ $files = [
     $root . '/includes/auth.php',
     $root . '/database/migrations/008_subscription_activation.sql',
     $root . '/database/migrations/009_special_access_links.sql',
+    $root . '/database/migrations/010_subscription_store_pricing_and_access_scope.sql',
     $root . '/includes/special_access.php',
     $root . '/renewal.php',
     $root . '/renewal/select.php',
@@ -34,11 +35,12 @@ $helper = file_get_contents($files[2]);
 $auth = file_get_contents($files[3]);
 $migration = file_get_contents($files[4]);
 $specialMigration = file_get_contents($files[5]);
-$specialHelper = file_get_contents($files[6]);
-$renewal = file_get_contents($files[7]);
-$renewalSelect = file_get_contents($files[8]);
-$accessPage = file_get_contents($files[9]);
-$page = file_get_contents($files[10]);
+$task13Migration = file_get_contents($files[6]);
+$specialHelper = file_get_contents($files[7]);
+$renewal = file_get_contents($files[8]);
+$renewalSelect = file_get_contents($files[9]);
+$accessPage = file_get_contents($files[10]);
+$page = file_get_contents($files[11]);
 
 foreach ([
     "UPDATE subscriptions",
@@ -61,6 +63,8 @@ foreach ([
 
 foreach ([
     'function restockSyncSubscriptionExpiry',
+    'function restockGetActiveStoreCount',
+    'function restockPackageCoversStoreCount',
     'function restockGetActiveSubscription',
     'function restockHasActiveSubscription',
     'function restockRequireActiveSubscription',
@@ -114,16 +118,20 @@ foreach ([
 
 foreach ([
     'function restockSpecialAccessTokenHash',
-    'function restockSyncSpecialAccess',
+    'function restockSpecialAccess',
     'special_access_token',
+    'access_scope',
     'token_hash',
-    'expires_at > CURRENT_TIMESTAMP',
+    'expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP',
+    "sal.access_scope = 'ACCOUNT'",
 ] as $needle) {
     assertContract(str_contains($specialHelper, $needle), 'Helper special access tidak lengkap: ' . $needle);
 }
 
 foreach ([
     'Perpanjang akses RESTOCK',
+    'min_store_count',
+    'max_store_count',
     '/renewal/select.php',
     'duration_days',
     'Pembayaran renewal',
@@ -149,3 +157,13 @@ foreach ([
 }
 
 echo "PASS: renewal and special access contract\n";
+
+foreach ([
+    'min_store_count INT UNSIGNED',
+    'max_store_count INT UNSIGNED',
+    'access_scope ENUM',
+    'MODIFY COLUMN expires_at DATETIME NULL',
+    'ADD COLUMN min_store_count INT UNSIGNED',
+] as $needle) {
+    assertContract(str_contains($task13Migration, $needle), 'Migration Task 13 tidak lengkap: ' . $needle);
+}

@@ -22,6 +22,7 @@ $needles = [
     "EXPIRED",
     "CANCELLED",
     "LIMIT 200",
+    "pageError",
 ];
 
 foreach ($needles as $needle) {

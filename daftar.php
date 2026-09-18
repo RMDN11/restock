@@ -54,6 +54,23 @@ if ($rawPackageId !== null && $rawPackageId !== false) {
     $packageId = (int) $rawPackageId;
 }
 
+function activeStoreCountForAccount(PDO $pdo, int $accountId): int
+{
+    if ($accountId <= 0) {
+        return 0;
+    }
+
+    $stmt = $pdo->prepare(
+        "SELECT COUNT(*)
+         FROM stores
+         WHERE account_id = :account_id
+           AND status = 'ACTIVE'"
+    );
+    $stmt->execute([':account_id' => $accountId]);
+
+    return (int) $stmt->fetchColumn();
+}
+
 function findActivePackage(PDO $pdo, ?int $packageId): ?array
 {
     if ($packageId === null || $packageId <= 0) {
@@ -61,7 +78,7 @@ function findActivePackage(PDO $pdo, ?int $packageId): ?array
     }
 
     $packageStmt = $pdo->prepare(
-        "SELECT id, name, price, duration_days FROM packages
+        "SELECT id, name, price, duration_days, min_store_count, max_store_count FROM packages
          WHERE id = :package_id AND status = 'ACTIVE' LIMIT 1"
     );
     $packageStmt->execute([':package_id' => $packageId]);
@@ -73,6 +90,8 @@ function findActivePackage(PDO $pdo, ?int $packageId): ?array
 if ($packageId !== null) {
     $selectedPackage = findActivePackage($pdo, $packageId);
 }
+
+
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postedToken = (string) ($_POST['csrf_token'] ?? '');
@@ -312,6 +331,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <form method="POST" id="registerForm" novalidate>
                 <input type="hidden" name="csrf_token" value="<?= e($csrfToken) ?>">
                 <input type="hidden" name="package_id" value="<?= e($packageId) ?>">
+<?php if ($packageStoreCoverageError): ?>
+    <div class="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+        <?= e($packageStoreCoverageError) ?>
+    </div>
+<?php endif; ?>
 
                 <?php if ($selectedPackage || $packageId !== null): ?>
                     <div class="mb-6 rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3">

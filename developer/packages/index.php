@@ -28,7 +28,7 @@ if ($status !== '') {
 }
 $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
-$stmt = $pdo->prepare("SELECT id, name, slug, price, duration_days, description, status, created_at, updated_at
+$stmt = $pdo->prepare("SELECT id, name, slug, price, duration_days, min_store_count, max_store_count, description, status, created_at, updated_at
     FROM packages $whereSql ORDER BY id DESC");
 $stmt->execute($params);
 $packages = $stmt->fetchAll();
@@ -97,7 +97,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
 
                     <div class="mt-6">
                         <p class="text-2xl font-semibold">Rp <?= number_format((float) $package['price'], 0, ',', '.') ?></p>
-                        <p class="text-xs text-neutral-400 mt-1"><?= number_format((int) $package['duration_days']) ?> hari</p>
+                        <p class="text-xs text-neutral-400 mt-1"><?= number_format((int) $package['duration_days']) ?> hari<?php if ($package['min_store_count'] !== null): ?> · mulai <?= number_format((int) $package['min_store_count']) ?> toko<?php endif; ?><?php if ($package['max_store_count'] !== null): ?> · sampai <?= number_format((int) $package['max_store_count']) ?> toko<?php endif; ?></p>
                     </div>
 
                     <?php if ($package['description']): ?>
