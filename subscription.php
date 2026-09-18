@@ -210,7 +210,7 @@ if ($hasActive) {
                     </div>
                 <?php else: ?>
                     <a
-                        href="/paket/"
+                        href="/renewal.php"
                         class="inline-flex items-center justify-center w-full min-h-11 mt-6 px-4 rounded-xl bg-neutral-900 text-white text-sm font-semibold"
                     >
                         Lihat Paket
