@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS packages (
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uq_packages_slug (slug),
-    KEY idx_packages_status (status)
+    INDEX idx_packages_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS payments (
@@ -33,12 +33,12 @@ CREATE TABLE IF NOT EXISTS payments (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    KEY idx_payments_account_id (account_id),
-    KEY idx_payments_store_id (store_id),
-    KEY idx_payments_package_id (package_id),
-    KEY idx_payments_status (status),
-    KEY idx_payments_created_at (created_at),
-    KEY idx_payments_verified_by (verified_by),
+    INDEX idx_payments_account_id (account_id),
+    INDEX idx_payments_store_id (store_id),
+    INDEX idx_payments_package_id (package_id),
+    INDEX idx_payments_status (status),
+    INDEX idx_payments_created_at (created_at),
+    INDEX idx_payments_verified_by (verified_by),
     CONSTRAINT fk_payments_account
         FOREIGN KEY (account_id) REFERENCES accounts(id)
         ON UPDATE CASCADE
