@@ -36,8 +36,8 @@ foreach ($required as $needle) {
 }
 
 assertContract(
-    str_contains($source, "\$_GET['package_id']"),
-    'package_id harus dibaca dari GET'
+    str_contains($source, "filter_input(INPUT_GET, 'package_id', FILTER_VALIDATE_INT)"),
+    'package_id harus dibaca dari GET dengan FILTER_VALIDATE_INT'
 );
 
 assertContract(
