@@ -31,11 +31,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'CREAT
         $accessError = 'Sesi keamanan tidak valid. Silakan muat ulang halaman.';
     } else {
         $storeId = (int) ($_POST['store_id'] ?? 0);
-        $durationDays = (int) ($_POST['duration_days'] ?? 1);
-        $allowedDurations = [1, 7, 30];
+        $accessScope = strtoupper(trim((string) ($_POST['access_scope'] ?? 'ACCOUNT')));
+        $lifetime = ($_POST['lifetime'] ?? '') === '1';
 
-        if (!in_array($durationDays, $allowedDurations, true)) {
-            $accessError = 'Durasi akses tidak valid.';
+        if (!in_array($accessScope, ['STORE', 'ACCOUNT'], true)) {
+            $accessError = 'Scope akses tidak valid.';
         } else {
             $storeLookup = $pdo->prepare(
                 "SELECT id, account_id
@@ -52,18 +52,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'CREAT
             } else {
                 try {
                     $token = bin2hex(random_bytes(32));
-                    $expiresAt = date('Y-m-d H:i:s', time() + ($durationDays * 86400));
+                    $expiresAt = $lifetime ? null : date('Y-m-d H:i:s', time() + 86400);
                     $insert = $pdo->prepare(
                         "INSERT INTO special_access_links
-                            (account_id, store_id, created_by, token_hash, expires_at, status, created_at, updated_at)
+                            (account_id, store_id, created_by, token_hash, access_scope, expires_at, status, created_at, updated_at)
                          VALUES
-                            (:account_id, :store_id, :created_by, :token_hash, :expires_at, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+                            (:account_id, :store_id, :created_by, :token_hash, :access_scope, :expires_at, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
                     );
                     $insert->execute([
                         ':account_id' => (int) $store['account_id'],
                         ':store_id' => $storeId,
                         ':created_by' => $authUserId,
                         ':token_hash' => hash('sha256', $token),
+                        ':access_scope' => $accessScope,
                         ':expires_at' => $expiresAt,
                     ]);
 
@@ -178,82 +179,55 @@ require_once __DIR__ . '/includes/sidebar.php';
                 <div class="flex items-start justify-between gap-4">
                     <div>
                         <p class="text-xs font-medium uppercase tracking-wider text-neutral-400">Akses khusus</p>
-                        <h2 class="text-lg font-semibold mt-1">Buat Link Akses Tanpa Subscription</h2>
-                        <p class="text-sm text-neutral-500 mt-2">
-                            Link sementara untuk store tertentu. User tetap wajib login dan harus memiliki membership store tersebut.
-                        </p>
+                        <h2 class="text-lg font-semibold mt-1">Buat Link Tanpa Subscription</h2>
+                        <p class="text-sm text-neutral-500 mt-2">Pilih satu toko sebagai representasi account. Scope ACCOUNT akan berlaku untuk owner dan seluruh toko milik account tersebut. Lifetime tidak memiliki tanggal kedaluwarsa.</p>
                     </div>
                     <span class="w-10 h-10 rounded-2xl bg-neutral-100 flex items-center justify-center">
                         <i data-lucide="key-round" class="w-5 h-5 text-neutral-700"></i>
                     </span>
                 </div>
-
                 <?php if ($accessMessage): ?>
-                    <div class="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                        <?= e($accessMessage) ?>
-                    </div>
+                    <div id="specialAccessNotice" class="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"><?= e($accessMessage) ?></div>
                 <?php endif; ?>
-
                 <?php if ($accessError): ?>
-                    <div class="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                        <?= e($accessError) ?>
-                    </div>
+                    <div id="specialAccessNotice" class="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"><?= e($accessError) ?></div>
                 <?php endif; ?>
-
                 <?php if ($accessCreatedToken): ?>
                     <div class="mt-4 rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
                         <p class="text-xs text-neutral-500">Link yang baru dibuat</p>
                         <div class="mt-2 flex flex-col gap-2 sm:flex-row">
-                            <input
-                                id="specialAccessLink"
-                                type="text"
-                                readonly
-                                value="<?= e(((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://') . ($_SERVER['HTTP_HOST'] ?? 'restock.reqra.my.id') . '/developer-access.php?token=' . $accessCreatedToken) ?>"
-                                class="min-h-11 min-w-0 flex-1 rounded-xl border border-neutral-200 bg-white px-3 text-xs text-neutral-700"
-                            >
-                            <button
-                                type="button"
-                                onclick="navigator.clipboard.writeText(document.getElementById('specialAccessLink').value)"
-                                class="min-h-11 rounded-xl border border-neutral-200 bg-white px-4 text-sm font-medium text-neutral-700"
-                            >
-                                Salin
-                            </button>
+                            <input id="specialAccessLink" type="text" readonly value="<?= e(((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://') . ($_SERVER['HTTP_HOST'] ?? 'restock.reqra.my.id') . '/developer-access.php?token=' . $accessCreatedToken) ?>" class="min-h-11 min-w-0 flex-1 rounded-xl border border-neutral-200 bg-white px-3 text-xs text-neutral-700">
+                            <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('specialAccessLink').value)" class="min-h-11 rounded-xl border border-neutral-200 bg-white px-4 text-sm font-medium text-neutral-700">Salin</button>
                         </div>
-                        <p class="mt-2 text-[11px] text-neutral-400">Token hanya ditampilkan saat link dibuat.</p>
                     </div>
                 <?php endif; ?>
-
-                <form method="post" class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_150px_auto]">
+                <form method="post" class="mt-5 grid grid-cols-1 gap-3">
                     <input type="hidden" name="csrf_token" value="<?= e($developerAccessCsrf) ?>">
                     <input type="hidden" name="action" value="CREATE_SPECIAL_ACCESS">
-
                     <select name="store_id" required class="min-h-11 rounded-xl border border-neutral-200 bg-white px-3 text-sm">
-                        <option value="">Pilih store</option>
+                        <option value="">Pilih account / toko</option>
                         <?php foreach ($developerStores as $store): ?>
-                            <option value="<?= (int) $store['id'] ?>">
-                                <?= e($store['account_name'] . ' · ' . $store['name']) ?>
-                            </option>
+                            <option value="<?= (int) $store['id'] ?>"><?= e($store['account_name'] . ' · ' . $store['name']) ?></option>
                         <?php endforeach; ?>
                     </select>
-
-                    <select name="duration_days" class="min-h-11 rounded-xl border border-neutral-200 bg-white px-3 text-sm">
-                        <option value="1">1 hari</option>
-                        <option value="7">7 hari</option>
-                        <option value="30">30 hari</option>
-                    </select>
-
-                    <button type="submit" class="min-h-11 rounded-xl bg-neutral-900 px-5 text-sm font-semibold text-white">
-                        Buat Link
-                    </button>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <select name="access_scope" class="min-h-11 rounded-xl border border-neutral-200 bg-white px-3 text-sm">
+                            <option value="ACCOUNT">Owner + seluruh toko account</option>
+                            <option value="STORE">Satu toko saja</option>
+                        </select>
+                        <label class="min-h-11 rounded-xl border border-neutral-200 bg-white px-3 items-center gap-3 px-3 text-sm flex">
+                            <input type="checkbox" name="lifetime" value="1" class="rounded border-neutral-300">
+                            <span>Lifetime</span>
+                        </label>
+                    </div>
+                    <button type="submit" class="min-h-11 rounded-xl bg-neutral-900 px-5 text-sm font-semibold text-white">Buat Link</button>
                 </form>
             </div>
-
             <div class="bento-card overflow-hidden">
                 <div class="px-5 py-4 border-b border-neutral-100">
                     <h2 class="font-semibold">Link Akses Terbaru</h2>
-                    <p class="text-xs text-neutral-400 mt-1">Status otomatis tidak lagi berlaku setelah expires_at.</p>
+                    <p class="text-xs text-neutral-400 mt-1">Link ACCOUNT berlaku untuk owner dan seluruh toko pada account yang sama.</p>
                 </div>
-
                 <?php if (!$specialAccessLinks): ?>
                     <div class="px-5 py-10 text-center text-sm text-neutral-400">Belum ada link akses khusus.</div>
                 <?php else: ?>
@@ -261,7 +235,7 @@ require_once __DIR__ . '/includes/sidebar.php';
                         <?php foreach ($specialAccessLinks as $link): ?>
                             <?php
                             $linkStatus = $link['status'];
-                            if ($linkStatus === 'ACTIVE' && strtotime((string) $link['expires_at']) <= time()) {
+                            if ($linkStatus === 'ACTIVE' && $link['expires_at'] !== null && strtotime((string) $link['expires_at']) <= time()) {
                                 $linkStatus = 'EXPIRED';
                             }
                             ?>
@@ -269,23 +243,19 @@ require_once __DIR__ . '/includes/sidebar.php';
                                 <div class="flex items-start justify-between gap-4">
                                     <div class="min-w-0">
                                         <p class="text-sm font-medium truncate"><?= e($link['account_name']) ?></p>
-                                        <p class="text-xs text-neutral-500 mt-1"><?= e($link['store_name']) ?></p>
+                                        <p class="text-xs text-neutral-500 mt-1"><?= e($link['access_scope'] === 'ACCOUNT' ? 'Owner + seluruh toko account' : ($link['store_name'] ?? 'Store')) ?></p>
                                     </div>
-                                    <span class="inline-flex shrink-0 rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-medium text-neutral-600">
-                                        <?= e($linkStatus) ?>
-                                    </span>
+                                    <span class="inline-flex shrink-0 rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-medium text-neutral-600"><?= e($linkStatus) ?></span>
                                 </div>
-                                <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-neutral-400">
-                                    <span>Berakhir <?= e(date('d M Y, H:i', strtotime((string) $link['expires_at']))) ?></span>
-                                    <span>Terakhir dipakai <?= $link['last_used_at'] ? e(date('d M Y, H:i', strtotime((string) $link['last_used_at']))) : '-' ?></span>
-                                </div>
+                                <div class="mt-3 text-[11px] text-neutral-400"><?= $link['expires_at'] === null ? 'Lifetime' : 'Berakhir ' . e(date('d M Y, H:i', strtotime((string) $link['expires_at']))) ?></div>
                             </div>
                         <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
             </div>
         </section>
-\n        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div class="bento-card p-5">
                 <div class="flex items-center justify-between gap-3">
                     <span class="text-sm text-neutral-500">Total Account</span>
