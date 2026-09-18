@@ -45,6 +45,7 @@ $stmt = $pdo->query(
 $packages = $stmt->fetchAll();
 
 $freeToken = trim((string) ($_GET['free_token'] ?? ''));
+$freeRegistrationUrl = '/daftar.php?free=1';
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -77,7 +78,26 @@ $freeToken = trim((string) ($_GET['free_token'] ?? ''));
                     <p class="mt-2 text-sm text-neutral-500">Silakan kembali lagi setelah paket diaktifkan.</p>
                 </div>
             <?php else: ?>
-                <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4"><article class="rounded-3xl border border-emerald-200 bg-emerald-50/70 p-6 shadow-sm flex flex-col">
+    <div>
+        <p class="text-xs font-semibold uppercase tracking-[.12em] text-emerald-700">Gratis</p>
+        <h2 class="mt-2 text-xl font-bold tracking-tight">Free</h2>
+        <p class="mt-2 text-sm leading-6 text-neutral-600">Untuk 1 owner dengan 1 toko.</p>
+    </div>
+    <div class="mt-6">
+        <div class="text-2xl font-bold text-emerald-700">Rp 0</div>
+        <div class="mt-1 text-xs text-neutral-500">Gratis</div>
+    </div>
+    <div class="mt-5 rounded-2xl bg-white/80 border border-emerald-100 px-4 py-3 text-sm">
+        <div class="font-semibold">1 owner · 1 toko</div>
+        <div class="mt-1 text-neutral-500">Cocok untuk mulai menggunakan RESTOCK.</div>
+    </div>
+    <a href="<?= e($freeRegistrationUrl) ?>" class="mt-6 w-full h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-sm font-semibold hover:bg-emerald-700 transition">
+        Mulai Gratis
+    </a>
+</article>
+
+
                     <?php foreach ($packages as $package): ?>
                         <article class="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm flex flex-col">
                             <div>

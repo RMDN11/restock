@@ -10,7 +10,7 @@ SELECT
     'standard',
     99000,
     30,
-    1,
+    2,
     3,
     'Untuk pengelolaan toko dengan kebutuhan lebih lengkap.',
     'ACTIVE',
