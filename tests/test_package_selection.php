@@ -16,6 +16,8 @@ assertContract(is_file($file), 'paket/index.php harus tersedia');
 
 $source = file_get_contents($file);
 assertContract($source !== false, 'paket/index.php harus dapat dibaca');
+$normalized = preg_replace('/\\s+/', ' ', $source);
+assertContract($normalized !== null, 'Source package selection harus dapat dinormalisasi');
 
 $required = [
     "SELECT id, name, slug, price, duration_days, description FROM packages WHERE status = 'ACTIVE' ORDER BY price ASC, id ASC",
@@ -28,7 +30,7 @@ $required = [
 
 foreach ($required as $needle) {
     assertContract(
-        str_contains($source, $needle),
+        str_contains($normalized, $needle),
         "Kontrak package selection tidak ditemukan: {$needle}"
     );
 }
