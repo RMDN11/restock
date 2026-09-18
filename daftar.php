@@ -46,6 +46,10 @@ $email = '';
 $storeName = '';
 $slug = '';
 $errors = [];
+$packageId = filter_input(INPUT_GET, 'package_id', FILTER_VALIDATE_INT);
+if ($packageId === false || $packageId === null || $packageId <= 0) {
+    $packageId = null;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postedToken = (string) ($_POST['csrf_token'] ?? '');
@@ -60,6 +64,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password_confirm = (string) ($_POST['password_confirm'] ?? '');
     $storeName = trim((string) ($_POST['store_name'] ?? ''));
     $slug = trim((string) ($_POST['slug'] ?? ''));
+
+    $postedPackageId = filter_input(INPUT_POST, 'package_id', FILTER_VALIDATE_INT);
+    if ($postedPackageId !== false && $postedPackageId !== null && $postedPackageId > 0) {
+        $packageId = $postedPackageId;
+    }
+
+    if ($packageId === null) {
+        $errors[] = 'Paket belum dipilih atau tidak valid. Silakan pilih paket terlebih dahulu.';
+    }
 
     if ($name === '') {
         $errors[] = 'Nama wajib diisi.';
@@ -111,6 +124,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Slug toko maksimal 180 karakter.';
     } elseif (!preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug)) {
         $errors[] = 'Slug hanya boleh berisi huruf kecil, angka, dan tanda hubung.';
+    }
+
+    if (!$errors) {
+        $packageStmt = $pdo->prepare(
+            "SELECT id, name, price, duration_days FROM packages WHERE id = :package_id AND status = 'ACTIVE' LIMIT 1"
+        );
+        $packageStmt->execute([':package_id' => $packageId]);
+        $selectedPackage = $packageStmt->fetch();
+        if (!$selectedPackage) {
+            $errors[] = 'Paket yang dipilih sudah tidak tersedia. Silakan pilih paket ACTIVE lainnya.';
+            $packageId = null;
+        }
     }
 
     if (!$errors) {
@@ -195,7 +220,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['store_slug'] = $slug;
             $_SESSION['login_at'] = time();
 
-            header('Location: /');
+            $_SESSION['selected_package_id'] = $packageId;
+
+            header('Location: /checkout.php');
             exit;
         } catch (PDOException $e) {
             if ($pdo->inTransaction()) {
@@ -268,6 +295,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <form method="POST" id="registerForm" novalidate>
                 <input type="hidden" name="csrf_token" value="<?= e($csrfToken) ?>">
+                <input type="hidden" name="package_id" value="<?= e($packageId) ?>">
 
                 <div class="section-title">Akun</div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 grid-gap mt-4">
