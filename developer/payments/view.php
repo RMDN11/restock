@@ -140,6 +140,10 @@ WHERE pay.id=:id LIMIT 1");
 $stmt->execute([':id'=>$paymentId]);
 $payment = $stmt->fetch();
 
+$subscriptionStmt = $pdo->prepare("SELECT id, starts_at, ends_at, status FROM subscriptions WHERE payment_id=:payment_id LIMIT 1");
+$subscriptionStmt->execute([':payment_id'=>$paymentId]);
+$subscription = $subscriptionStmt->fetch();
+
 if (!$payment) { http_response_code(404); exit('Pembayaran tidak ditemukan.'); }
 $statusClass = match ($payment['status']) { 'PENDING'=>'text-amber-700 bg-amber-50', 'VERIFIED'=>'text-emerald-700 bg-emerald-50', 'REJECTED'=>'text-red-700 bg-red-50', default=>'text-neutral-600 bg-neutral-100' };
 
@@ -162,6 +166,16 @@ require_once __DIR__ . '/../includes/sidebar.php';
 <div><dt class="text-xs text-neutral-400">User</dt><dd class="mt-1 font-medium"><?= e($payment['user_name'] ?: '-') ?></dd></div>
 <div><dt class="text-xs text-neutral-400">Email</dt><dd class="mt-1 font-medium break-all"><?= e($payment['user_email'] ?: '-') ?></dd></div>
 </dl>
+<?php if ($subscription): ?>
+<div class="mt-6 border-t border-neutral-100 pt-5">
+<h3 class="font-medium text-sm">Subscription</h3>
+<div class="mt-3 grid grid-cols-2 gap-4 text-sm">
+<div><p class="text-xs text-neutral-400">Mulai</p><p class="mt-1 font-medium"><?= e(date('d M Y, H:i', strtotime($subscription['starts_at']))) ?></p></div>
+<div><p class="text-xs text-neutral-400">Berakhir</p><p class="mt-1 font-medium"><?= e(date('d M Y, H:i', strtotime($subscription['ends_at']))) ?></p></div>
+</div>
+<p class="mt-3 text-xs text-neutral-500">Status subscription: <?= e($subscription['status']) ?></p>
+</div>
+<?php endif; ?>
 <div class="mt-6 border-t border-neutral-100 pt-5"><h3 class="font-medium text-sm">Bukti Pembayaran</h3>
 <?php if ($payment['proof_file']): ?><p class="mt-3 text-sm break-all"><?= e($payment['proof_file']) ?></p><?php else: ?><p class="mt-3 text-sm text-neutral-400">Belum ada bukti pembayaran.</p><?php endif; ?>
 </div></section>
