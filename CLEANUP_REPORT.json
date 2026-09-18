@@ -1,0 +1,20 @@
+{
+  "cleanup": "RESTOCK global mobile header cleanup",
+  "generated_at": "2026-09-18T09:14:40",
+  "removed_legacy_mobile_headers": 30,
+  "remaining_page_mobile_headers": 0,
+  "remaining_inline_toggleSidebar_calls": 0,
+  "php_syntax_failures": 0,
+  "global_files": [
+    "restock.reqra.my.id/includes/header.php",
+    "restock.reqra.my.id/includes/sidebar.php",
+    "restock.reqra.my.id/assets/css/app.css",
+    "restock.reqra.my.id/assets/js/app.js"
+  ],
+  "notes": [
+    "Per-page legacy mobile headers were removed automatically only when they matched the legacy md:hidden/mobile-header pattern and contained toggleSidebar().",
+    "Page-level action buttons using data-lucide=plus were preserved because they are page functionality, not duplicate global header controls.",
+    "Global mobile header now owns hamburger, logo.png, and dark-green shopping cart.",
+    "Desktop sidebar minimize persists through localStorage and is disabled on mobile."
+  ]
+}
