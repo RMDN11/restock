@@ -28,7 +28,7 @@ if ($status !== '') {
 }
 $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
-$stmt = $pdo->prepare("SELECT id, name, slug, price, duration_days, description, status, created_at, updated_at
+$stmt = $pdo->prepare("SELECT id, name, slug, price, duration_days, min_store_count, max_store_count, description, status, created_at, updated_at
     FROM packages $whereSql ORDER BY id DESC");
 $stmt->execute($params);
 $packages = $stmt->fetchAll();
