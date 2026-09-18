@@ -24,6 +24,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/includes/free_plan.php';
 
 function e($value) {
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
@@ -280,19 +281,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if (establishStoreSession($pdo, $user)) {
-                $pendingSpecialAccessToken = trim((string) ($_SESSION['pending_special_access_token'] ?? ''));
-                unset($_SESSION['pending_special_access_token']);
+                $pendingFreePlanToken = trim((string) ($_SESSION['pending_free_plan_token'] ?? ''));
+                unset($_SESSION['pending_free_plan_token']);
 
-                if ($pendingSpecialAccessToken !== '') {
-                    header('Location: /developer-access.php?token=' . rawurlencode($pendingSpecialAccessToken));
+                if ($pendingFreePlanToken !== '') {
+                    try {
+                        $pdo->beginTransaction();
+                        $freePlanResult = restockFreePlanRedeem(
+                            $pdo,
+                            $pendingFreePlanToken,
+                            (int) $_SESSION['account_id']
+                        );
+
+                        if (!$freePlanResult['success']) {
+                            $pdo->rollBack();
+                            $error = $freePlanResult['message'];
+                        } else {
+                            $pdo->commit();
+                            header('Location: /?free_plan=activated');
+                            exit;
+                        }
+                    } catch (Throwable $e) {
+                        if ($pdo->inTransaction()) {
+                            $pdo->rollBack();
+                        }
+                        $error = 'Free Plan belum dapat diaktifkan. Silakan coba lagi.';
+                    }
+                } else {
+                    $pendingSpecialAccessToken = trim((string) ($_SESSION['pending_special_access_token'] ?? ''));
+                    unset($_SESSION['pending_special_access_token']);
+
+                    if ($pendingSpecialAccessToken !== '') {
+                        header('Location: /developer-access.php?token=' . rawurlencode($pendingSpecialAccessToken));
+                        exit;
+                    }
+
+                    header('Location: /');
                     exit;
                 }
-
-                header('Location: /');
-                exit;
             }
 
-            $error = 'Akun belum terhubung ke Store aktif.';
+            if ($error === '') {
+                $error = 'Akun belum terhubung ke Store aktif.';
+            }
 
         } else {
 
