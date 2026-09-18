@@ -48,6 +48,8 @@ $sql = "
         INNER JOIN stores s2 ON s2.id = su2.store_id
         INNER JOIN users u2 ON u2.id = su2.user_id
         WHERE su2.role = 'ADMIN'
+          AND su2.status = 'ACTIVE'
+          AND u2.status = 'ACTIVE'
         GROUP BY s2.account_id
     ) owner_usernames
         ON owner_usernames.account_id = a.id
