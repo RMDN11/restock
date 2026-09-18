@@ -34,8 +34,8 @@ foreach ($required as $needle) {
 }
 
 assertContract(
-    str_contains($source, "href=\"/daftar.php?"),
-    'Harus menyediakan link menuju pendaftaran'
+    str_contains($source, "$baseUrl = '/daftar.php';"),
+    'Harus menggunakan endpoint pendaftaran /daftar.php'
 );
 
 assertContract(
