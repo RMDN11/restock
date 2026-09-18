@@ -143,6 +143,12 @@ try {
     }
 
     $pageError = '';
+
+    $accountCountStmt = $pdo->query("SELECT COUNT(*) FROM accounts WHERE status = 'ACTIVE'");
+    $activeAccountCount = (int) $accountCountStmt->fetchColumn();
+
+    $storeCountStmt = $pdo->query("SELECT COUNT(*) FROM stores WHERE status = 'ACTIVE'");
+    $activeStoreCount = (int) $storeCountStmt->fetchColumn();
 } catch (Throwable $e) {
     $subscriptions = [];
     $totalSubscriptions = 0;
@@ -151,6 +157,8 @@ try {
     $cancelledSubscriptions = 0;
     $totalFilteredAmount = 0.0;
     $pageError = 'Data subscription belum dapat dimuat. Pastikan migration subscription sudah tersedia di database production.';
+    $activeAccountCount = 0;
+    $activeStoreCount = 0;
 }
 ?>
 <!DOCTYPE html>
@@ -170,7 +178,7 @@ try {
         <div class="mb-6">
             <p class="text-xs font-medium uppercase tracking-wider text-neutral-400">RESTOCK Developer · Finance</p>
             <h1 class="text-2xl md:text-3xl font-semibold tracking-tight mt-1">Subscription</h1>
-            <p class="text-sm text-neutral-500 mt-2">Pantau seluruh subscription account dan store.</p>
+            <p class="text-sm text-neutral-500 mt-2">Pantau subscription, periode aktif, paket, dan store yang tercakup.</p>
         </div>
 
         <?php if ($pageError): ?>
@@ -179,7 +187,17 @@ try {
             </div>
         <?php endif; ?>
 
-        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
+            <div class="bento-card p-5">
+                <p class="text-sm text-neutral-500">Account Aktif</p>
+                <p class="text-3xl font-semibold tracking-tight mt-3"><?= number_format($activeAccountCount) ?></p>
+                <p class="text-xs text-neutral-400 mt-1">Account aktif di platform</p>
+            </div>
+            <div class="bento-card p-5">
+                <p class="text-sm text-neutral-500">Store Aktif</p>
+                <p class="text-3xl font-semibold tracking-tight mt-3"><?= number_format($activeStoreCount) ?></p>
+                <p class="text-xs text-neutral-400 mt-1">Store aktif di platform</p>
+            </div>
             <div class="bento-card p-5">
                 <p class="text-sm text-neutral-500">Nilai Paket</p>
                 <p class="text-2xl font-semibold tracking-tight mt-3"><?= rupiah($totalFilteredAmount) ?></p>
