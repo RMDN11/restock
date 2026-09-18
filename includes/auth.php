@@ -8,7 +8,7 @@
 | persistent selama 24 jam.
 */
 
-const RESTOCK_SESSION_LIFETIME = 86400; // 24 jam
+const RESTOCK_SESSION_LIFETIME = 86400;
 
 if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.gc_maxlifetime', (string) RESTOCK_SESSION_LIFETIME);
@@ -91,8 +91,6 @@ if (
     exit;
 }
 
-// Developer tidak membutuhkan membership Store.
-// Halaman toko biasa tidak menjadi area kerja Developer.
 if ($currentUser['role'] === 'DEVELOPER') {
     $_SESSION['user_id']   = (int) $currentUser['id'];
     $_SESSION['user_name'] = $currentUser['name'];
@@ -113,7 +111,6 @@ $sessionStoreId = (int) ($_SESSION['store_id'] ?? 0);
 $membership = null;
 
 if ($sessionStoreId > 0) {
-
     $m = $pdo->prepare(
         "SELECT
             su.store_id,
@@ -123,7 +120,9 @@ if ($sessionStoreId > 0) {
             s.slug,
             s.account_id,
             s.status AS store_status,
-            a.status AS account_status
+            a.status AS account_status,
+            a.plan_type,
+            a.free_plan_expires_at
          FROM store_users su
          INNER JOIN stores s ON s.id = su.store_id
          INNER JOIN accounts a ON a.id = s.account_id
@@ -144,7 +143,6 @@ if ($sessionStoreId > 0) {
 }
 
 if (!$membership) {
-
     $m = $pdo->prepare(
         "SELECT
             su.store_id,
@@ -154,7 +152,9 @@ if (!$membership) {
             s.slug,
             s.account_id,
             s.status AS store_status,
-            a.status AS account_status
+            a.status AS account_status,
+            a.plan_type,
+            a.free_plan_expires_at
          FROM store_users su
          INNER JOIN stores s ON s.id = su.store_id
          INNER JOIN accounts a ON a.id = s.account_id
@@ -184,8 +184,8 @@ if (!$membership) {
 | Subscription access gate
 |--------------------------------------------------------------------------
 | Hanya area aplikasi utama yang wajib punya subscription ACTIVE.
-| Developer area, login, checkout, dan halaman subscription tidak melewati
-| guard ini karena memiliki alur akses tersendiri.
+| Account dengan FREE plan aktif atau special access juga dapat masuk.
+|--------------------------------------------------------------------------
 */
 $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 
@@ -209,7 +209,15 @@ foreach ($subscriptionGatedPrefixes as $prefix) {
 }
 
 if ($isSubscriptionGated) {
-    $hasSpecialAccess = restockHasSpecialAccess(
+    $isFreePlan = (
+        ($membership['plan_type'] ?? 'PAID') === 'FREE' &&
+        (
+            empty($membership['free_plan_expires_at']) ||
+            strtotime((string) $membership['free_plan_expires_at']) > time()
+        )
+    );
+
+    $hasSpecialAccess = $isFreePlan || restockHasSpecialAccess(
         $pdo,
         $userId,
         (int) $membership['account_id'],
@@ -225,12 +233,6 @@ if ($isSubscriptionGated) {
     }
 }
 
-/*
-|--------------------------------------------------------------------------
-| Sinkronisasi session
-|--------------------------------------------------------------------------
-*/
-
 $_SESSION['user_id']    = (int) $currentUser['id'];
 $_SESSION['user_name']  = $currentUser['name'];
 $_SESSION['username']   = $currentUser['username'];
@@ -239,12 +241,6 @@ $_SESSION['account_id'] = (int) $membership['account_id'];
 $_SESSION['store_id']   = (int) $membership['store_id'];
 $_SESSION['store_name'] = $membership['store_name'];
 $_SESSION['store_slug'] = $membership['slug'];
-
-/*
- * Jangan mengubah login_at di sini.
- * Kalau diubah setiap request, session akan terus diperpanjang
- * dan aturan 24 jam berubah menjadi session tanpa batas.
- */
 
 $authUser       = $currentUser;
 $authUserId     = (int) $currentUser['id'];
