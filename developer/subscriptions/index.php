@@ -27,12 +27,16 @@ function formatDateTime(?string $value): string
 
 function statusClass(string $status): string
 {
-    return match ($status) {
-        'ACTIVE' => 'text-emerald-700 bg-emerald-50',
-        'EXPIRED' => 'text-neutral-600 bg-neutral-100',
-        'CANCELLED' => 'text-red-700 bg-red-50',
-        default => 'text-neutral-600 bg-neutral-100',
-    };
+    switch ($status) {
+        case 'ACTIVE':
+            return 'text-emerald-700 bg-emerald-50';
+        case 'EXPIRED':
+            return 'text-neutral-600 bg-neutral-100';
+        case 'CANCELLED':
+            return 'text-red-700 bg-red-50';
+        default:
+            return 'text-neutral-600 bg-neutral-100';
+    }
 }
 
 $search = trim((string) ($_GET['q'] ?? ''));
