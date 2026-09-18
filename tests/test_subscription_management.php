@@ -118,11 +118,12 @@ foreach ([
 
 foreach ([
     'function restockSpecialAccessTokenHash',
-    'function restockSyncSpecialAccess',
+    'function restockSpecialAccess',
     'special_access_token',
     'access_scope',
     'token_hash',
     'expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP',
+    "sal.access_scope = 'ACCOUNT'",
 ] as $needle) {
     assertContract(str_contains($specialHelper, $needle), 'Helper special access tidak lengkap: ' . $needle);
 }
@@ -162,6 +163,7 @@ foreach ([
     'max_store_count INT UNSIGNED',
     'access_scope ENUM',
     'MODIFY COLUMN expires_at DATETIME NULL',
+    'ADD COLUMN min_store_count INT UNSIGNED',
 ] as $needle) {
     assertContract(str_contains($task13Migration, $needle), 'Migration Task 13 tidak lengkap: ' . $needle);
 }
