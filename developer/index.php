@@ -52,7 +52,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'CREAT
             } else {
                 try {
                     $token = bin2hex(random_bytes(32));
-                    $insert->bindValue(':token_hash', hash('sha256', $token), PDO::PARAM_STR);
                     $expiresAt = date('Y-m-d H:i:s', time() + ($durationDays * 86400));
                     $insert = $pdo->prepare(
                         "INSERT INTO special_access_links
