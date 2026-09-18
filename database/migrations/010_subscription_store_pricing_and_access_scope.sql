@@ -15,3 +15,8 @@ ALTER TABLE special_access_links
 
 ALTER TABLE special_access_links
     MODIFY COLUMN expires_at DATETIME NULL;
+
+-- Optional starter configurations:
+-- UPDATE packages SET min_store_count=1, max_store_count=1 WHERE slug='basic-single';
+-- UPDATE packages SET min_store_count=2, max_store_count=3 WHERE slug='small-team';
+-- UPDATE packages SET min_store_count=4, max_store_count=NULL WHERE slug='multi-store';
