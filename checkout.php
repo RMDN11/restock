@@ -3,8 +3,8 @@ declare(strict_types=1);
 
 /*
  * RESTOCK - Package Checkout
- * Scope 2I-6:
- * registration -> checkout -> PENDING bank transfer payment.
+ * Scope 2I-6 + 2I-7:
+ * registration -> checkout -> PENDING bank transfer payment -> proof upload.
  */
 
 require_once __DIR__ . '/includes/auth.php';
@@ -60,7 +60,7 @@ if (!$package) {
  * This is intentionally checked before creating a new payment.
  */
 $pendingStmt = $pdo->prepare(
-    "SELECT id, amount, payment_method, status, expired_at, created_at
+    "SELECT id, amount, payment_method, status, proof_file, expired_at, created_at
      FROM payments
      WHERE account_id = :account_id
        AND store_id = :store_id
@@ -79,6 +79,8 @@ $pendingPayment = $pendingStmt->fetch();
 
 $success = isset($_GET['success']) && $_GET['success'] === '1';
 $error = '';
+$proofSuccess = '';
+$proofError = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postedToken = (string) ($_POST['csrf_token'] ?? '');
@@ -86,72 +88,187 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($postedToken === '' || !hash_equals($csrfToken, $postedToken)) {
         $error = 'Sesi keamanan tidak valid. Silakan muat ulang halaman.';
     } else {
-        /*
-         * Never trust submitted amount/payment data.
-         * Re-read the package and its current ACTIVE price from MySQL.
-         */
-        $packageStmt = $pdo->prepare(
-            "SELECT id, name, slug, price, duration_days, description
-             FROM packages
-             WHERE id = :package_id AND status = 'ACTIVE' LIMIT 1"
-        );
-        $packageStmt->execute([
-            ':package_id' => $packageId,
-        ]);
-        $package = $packageStmt->fetch();
+        $action = strtoupper(trim((string) ($_POST['action'] ?? 'CREATE_PAYMENT')));
 
-        if (!$package) {
-            unset($_SESSION['selected_package_id'], $_SESSION['payment_id']);
-            header('Location: /paket/');
-            exit;
-        }
+        if ($action === 'UPLOAD_PROOF') {
+            $paymentId = (int) ($_SESSION['payment_id'] ?? 0);
 
-        $pendingStmt = $pdo->prepare(
-            "SELECT id, amount, payment_method, status, expired_at, created_at
-             FROM payments
-             WHERE account_id = :account_id
-               AND store_id = :store_id
-               AND package_id = :package_id
-               AND status = 'PENDING'
-               AND (expired_at IS NULL OR expired_at > CURRENT_TIMESTAMP)
-             ORDER BY id DESC
-             LIMIT 1"
-        );
-        $pendingStmt->execute([
-            ':account_id' => $accountId,
-            ':store_id' => $storeId,
-            ':package_id' => $packageId,
-        ]);
-        $pendingPayment = $pendingStmt->fetch();
+            if ($paymentId <= 0) {
+                $proofError = 'Pembayaran belum tersedia. Buat pembayaran terlebih dahulu.';
+            } elseif (
+                !isset($_FILES['proof_file']) ||
+                !is_array($_FILES['proof_file']) ||
+                ($_FILES['proof_file']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK
+            ) {
+                $uploadError = (int) ($_FILES['proof_file']['error'] ?? UPLOAD_ERR_NO_FILE);
+                $proofError = match ($uploadError) {
+                    UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'Ukuran file terlalu besar.',
+                    UPLOAD_ERR_PARTIAL => 'Upload file tidak selesai. Silakan coba lagi.',
+                    UPLOAD_ERR_NO_FILE => 'Pilih file bukti pembayaran terlebih dahulu.',
+                    default => 'Bukti pembayaran gagal diunggah.',
+                };
+            } else {
+                $file = $_FILES['proof_file'];
+                $maxBytes = 5 * 1024 * 1024;
 
-        if ($pendingPayment) {
-            $_SESSION['payment_id'] = (int) $pendingPayment['id'];
-            $success = true;
+                if ((int) $file['size'] <= 0 || (int) $file['size'] > $maxBytes) {
+                    $proofError = 'Ukuran bukti pembayaran maksimal 5 MB.';
+                } elseif (!is_uploaded_file($file['tmp_name'])) {
+                    $proofError = 'File upload tidak valid.';
+                } else {
+                    $finfo = new finfo(FILEINFO_MIME_TYPE);
+                    $mime = $finfo->file($file['tmp_name']);
+
+                    $allowedMimes = [
+                        'image/jpeg' => 'jpg',
+                        'image/png' => 'png',
+                        'image/webp' => 'webp',
+                        'application/pdf' => 'pdf',
+                    ];
+
+                    if (!isset($allowedMimes[$mime])) {
+                        $proofError = 'Format file harus JPG, PNG, WEBP, atau PDF.';
+                    } else {
+                        $paymentStmt = $pdo->prepare(
+                            "SELECT id, proof_file, status
+                             FROM payments
+                             WHERE id = :payment_id
+                               AND account_id = :account_id
+                               AND store_id = :store_id
+                             LIMIT 1"
+                        );
+                        $paymentStmt->execute([
+                            ':payment_id' => $paymentId,
+                            ':account_id' => $accountId,
+                            ':store_id' => $storeId,
+                        ]);
+                        $proofPayment = $paymentStmt->fetch();
+
+                        if (!$proofPayment) {
+                            $proofError = 'Pembayaran tidak ditemukan.';
+                        } elseif ($proofPayment['status'] !== 'PENDING') {
+                            $proofError = 'Bukti hanya dapat diunggah untuk pembayaran yang masih PENDING.';
+                        } else {
+                            $uploadDir = __DIR__ . '/uploads/payments';
+
+                            if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true) && !is_dir($uploadDir)) {
+                                $proofError = 'Folder upload belum dapat disiapkan.';
+                            } else {
+                                $filename = bin2hex(random_bytes(16)) . '.' . $allowedMimes[$mime];
+                                $destination = $uploadDir . '/' . $filename;
+                                $relativePath = '/uploads/payments/' . $filename;
+
+                                if (!move_uploaded_file($file['tmp_name'], $destination)) {
+                                    $proofError = 'Bukti pembayaran gagal disimpan.';
+                                } else {
+                                    $updateStmt = $pdo->prepare(
+                                        "UPDATE payments
+                                         SET proof_file = :proof_file,
+                                             updated_at = CURRENT_TIMESTAMP
+                                         WHERE id = :payment_id
+                                           AND account_id = :account_id
+                                           AND store_id = :store_id
+                                           AND status = 'PENDING'"
+                                    );
+                                    $updateStmt->execute([
+                                        ':proof_file' => $relativePath,
+                                        ':payment_id' => $paymentId,
+                                        ':account_id' => $accountId,
+                                        ':store_id' => $storeId,
+                                    ]);
+
+                                    if ($updateStmt->rowCount() !== 1) {
+                                        @unlink($destination);
+                                        $proofError = 'Pembayaran berubah saat upload diproses. Silakan coba lagi.';
+                                    } else {
+                                        if (!empty($proofPayment['proof_file'])) {
+                                            $oldPath = (string) $proofPayment['proof_file'];
+                                            $oldRelativePrefix = '/uploads/payments/';
+                                            if (str_starts_with($oldPath, $oldRelativePrefix)) {
+                                                $oldFilename = basename($oldPath);
+                                                if ($oldFilename !== basename($relativePath)) {
+                                                    @unlink($uploadDir . '/' . $oldFilename);
+                                                }
+                                            }
+                                        }
+
+                                        $proofSuccess = 'Bukti pembayaran berhasil diunggah dan menunggu verifikasi.';
+                                        $pendingPayment['proof_file'] = $relativePath;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         } else {
-            $expiredAt = date('Y-m-d H:i:s', time() + 86400);
+            /*
+             * Never trust submitted amount/payment data.
+             * Re-read the package and its current ACTIVE price from MySQL.
+             */
+            $packageStmt = $pdo->prepare(
+                "SELECT id, name, slug, price, duration_days, description
+                 FROM packages
+                 WHERE id = :package_id AND status = 'ACTIVE' LIMIT 1"
+            );
+            $packageStmt->execute([
+                ':package_id' => $packageId,
+            ]);
+            $package = $packageStmt->fetch();
 
-            try {
-                $paymentStmt = $pdo->prepare(
-                    "INSERT INTO payments
-                        (account_id, store_id, package_id, amount, payment_method, status, expired_at, created_at, updated_at)
-                     VALUES
-                        (:account_id, :store_id, :package_id, :amount, 'BANK_TRANSFER', 'PENDING', :expired_at, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
-                );
-
-                $paymentStmt->execute([
-                    ':account_id' => $accountId,
-                    ':store_id' => $storeId,
-                    ':package_id' => $packageId,
-                    ':amount' => $package['price'],
-                    ':expired_at' => $expiredAt,
-                ]);
-
-                $_SESSION['payment_id'] = (int) $pdo->lastInsertId();
-
-                header('Location: /checkout.php?success=1');
+            if (!$package) {
+                unset($_SESSION['selected_package_id'], $_SESSION['payment_id']);
+                header('Location: /paket/');
                 exit;
-            } catch (PDOException $e) {
-                $error = 'Pembayaran belum dapat dibuat. Silakan coba lagi.';
+            }
+
+            $pendingStmt = $pdo->prepare(
+                "SELECT id, amount, payment_method, status, proof_file, expired_at, created_at
+                 FROM payments
+                 WHERE account_id = :account_id
+                   AND store_id = :store_id
+                   AND package_id = :package_id
+                   AND status = 'PENDING'
+                   AND (expired_at IS NULL OR expired_at > CURRENT_TIMESTAMP)
+                 ORDER BY id DESC
+                 LIMIT 1"
+            );
+            $pendingStmt->execute([
+                ':account_id' => $accountId,
+                ':store_id' => $storeId,
+                ':package_id' => $packageId,
+            ]);
+            $pendingPayment = $pendingStmt->fetch();
+
+            if ($pendingPayment) {
+                $_SESSION['payment_id'] = (int) $pendingPayment['id'];
+                $success = true;
+            } else {
+                $expiredAt = date('Y-m-d H:i:s', time() + 86400);
+
+                try {
+                    $paymentStmt = $pdo->prepare(
+                        "INSERT INTO payments
+                            (account_id, store_id, package_id, amount, payment_method, status, expired_at, created_at, updated_at)
+                         VALUES
+                            (:account_id, :store_id, :package_id, :amount, 'BANK_TRANSFER', 'PENDING', :expired_at, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+                    );
+
+                    $paymentStmt->execute([
+                        ':account_id' => $accountId,
+                        ':store_id' => $storeId,
+                        ':package_id' => $packageId,
+                        ':amount' => $package['price'],
+                        ':expired_at' => $expiredAt,
+                    ]);
+
+                    $_SESSION['payment_id'] = (int) $pdo->lastInsertId();
+
+                    header('Location: /checkout.php?success=1');
+                    exit;
+                } catch (PDOException $e) {
+                    $error = 'Pembayaran belum dapat dibuat. Silakan coba lagi.';
+                }
             }
         }
     }
@@ -196,6 +313,18 @@ $pageTitle = 'Checkout';
                 </div>
             <?php endif; ?>
 
+            <?php if ($proofSuccess): ?>
+                <div class="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
+                    <?= e($proofSuccess) ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($proofError): ?>
+                <div class="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
+                    <?= e($proofError) ?>
+                </div>
+            <?php endif; ?>
+
             <div class="grid gap-4 md:grid-cols-[1.2fr_.8fr]">
                 <article class="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm">
                     <p class="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400">Paket</p>
@@ -235,6 +364,41 @@ $pageTitle = 'Checkout';
                                     Berlaku sampai <?= e(date('d M Y H:i', strtotime($pendingPayment['expired_at']))) ?>
                                 </p>
                             <?php endif; ?>
+
+                            <div class="mt-5 border-t border-neutral-100 pt-5">
+                                <p class="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400">Bukti Transfer</p>
+
+                                <?php if (!empty($pendingPayment['proof_file'])): ?>
+                                    <div class="mt-3 rounded-2xl bg-emerald-50 px-4 py-3">
+                                        <p class="text-sm font-medium text-emerald-800">Bukti sudah diunggah</p>
+                                        <a href="<?= e($pendingPayment['proof_file']) ?>" target="_blank" rel="noopener" class="mt-2 inline-flex text-xs font-medium text-emerald-700 underline">
+                                            Lihat bukti
+                                        </a>
+                                    </div>
+                                    <p class="mt-3 text-xs text-neutral-400">Kamu masih dapat mengganti bukti selama pembayaran belum diverifikasi.</p>
+                                <?php else: ?>
+                                    <p class="mt-2 text-xs leading-5 text-neutral-500">Upload bukti transfer setelah pembayaran dilakukan.</p>
+                                <?php endif; ?>
+
+                                <form method="POST" enctype="multipart/form-data" class="mt-4">
+                                    <input type="hidden" name="csrf_token" value="<?= e($csrfToken) ?>">
+                                    <input type="hidden" name="action" value="UPLOAD_PROOF">
+                                    <label class="block">
+                                        <span class="text-xs font-medium text-neutral-600">File bukti</span>
+                                        <input
+                                            type="file"
+                                            name="proof_file"
+                                            accept=".jpg,.jpeg,.png,.webp,.pdf"
+                                            class="mt-2 block w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-xs"
+                                            required
+                                        >
+                                    </label>
+                                    <p class="mt-2 text-[11px] text-neutral-400">JPG, PNG, WEBP, atau PDF · maksimal 5 MB</p>
+                                    <button type="submit" class="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-neutral-900 px-4 py-3 text-sm font-semibold text-white">
+                                        <?= !empty($pendingPayment['proof_file']) ? 'Ganti Bukti Transfer' : 'Upload Bukti Transfer' ?>
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     <?php else: ?>
                         <form method="POST" class="mt-5" id="checkoutForm">
