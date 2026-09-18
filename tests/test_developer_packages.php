@@ -37,6 +37,8 @@ $checks = [
     'description' => 'description',
     'slug' => 'slug',
     'prepared statements' => 'prepare(',
+    'package navigation' => '/developer/packages/',
+    'read-only package listing' => 'SELECT id, name, slug, price, duration_days, description, status, created_at, updated_at',
 ];
 
 $failures = [];
