@@ -66,9 +66,9 @@ $freeRegistrationUrl = '/daftar.php?free=1';
                     <img src="/assets/images/logo.png" alt="RESTOCK" class="w-full h-full object-cover">
                 </div>
                 <p class="text-[11px] font-bold tracking-[.16em] text-neutral-400">RE-STOCK</p>
-                <h1 class="mt-2 text-3xl sm:text-4xl font-bold tracking-tight">Pilih paket</h1>
+                <h1 class="mt-2 text-3xl sm:text-4xl font-bold tracking-tight">Pilih paket untuk mulai</h1>
                 <p class="mt-3 text-sm text-neutral-500 max-w-lg mx-auto">
-                    Pilih paket terlebih dahulu, lalu lanjut isi data akun dan toko. Jadi tidak ada lagi form pendaftaran yang tiba-tiba bertanya paketnya setelah semuanya diisi.
+                    Mulai dari gratis atau pilih paket sesuai jumlah toko. Setelah memilih, kamu langsung lanjut ke pengaturan akun dan toko.
                 </p>
             </div>
 
@@ -78,28 +78,28 @@ $freeRegistrationUrl = '/daftar.php?free=1';
                     <p class="mt-2 text-sm text-neutral-500">Silakan kembali lagi setelah paket diaktifkan.</p>
                 </div>
             <?php else: ?>
-                <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4"><article class="rounded-3xl border border-emerald-200 bg-emerald-50/70 p-6 shadow-sm flex flex-col">
+                <div class="grid gap-5 md:grid-cols-2 lg:grid-cols-4 items-stretch"><article class="group rounded-[28px] border border-emerald-200 bg-gradient-to-b from-emerald-50 to-white p-6 shadow-sm flex flex-col min-h-[430px] transition duration-200 hover:-translate-y-1 hover:shadow-lg">
     <div>
         <p class="text-xs font-semibold uppercase tracking-[.12em] text-emerald-700">Gratis</p>
         <h2 class="mt-2 text-xl font-bold tracking-tight">Free</h2>
         <p class="mt-2 text-sm leading-6 text-neutral-600">Untuk 1 owner dengan 1 toko.</p>
     </div>
     <div class="mt-6">
-        <div class="text-2xl font-bold text-emerald-700">Rp 0</div>
+        <div class="text-3xl font-bold tracking-tight text-emerald-700">Rp 0</div>
         <div class="mt-1 text-xs text-neutral-500">Gratis</div>
     </div>
-    <div class="mt-5 rounded-2xl bg-white/80 border border-emerald-100 px-4 py-3 text-sm">
+    <div class="mt-5 rounded-2xl bg-white/80 border border-emerald-100 px-4 py-3 text-sm min-h-[72px]">
         <div class="font-semibold">1 owner · 1 toko</div>
         <div class="mt-1 text-neutral-500">Cocok untuk mulai menggunakan RESTOCK.</div>
     </div>
-    <a href="<?= e($freeRegistrationUrl) ?>" class="mt-6 w-full h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-sm font-semibold hover:bg-emerald-700 transition">
+    <a href="<?= e($freeRegistrationUrl) ?>" class="mt-auto pt-6 w-full"><span class="w-full h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-sm font-semibold hover:bg-emerald-700 transition shadow-sm">
         Mulai Gratis
-    </a>
+    </span></a>
 </article>
 
 
                     <?php foreach ($packages as $package): ?>
-                        <article class="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm flex flex-col">
+                        <article class="group rounded-[28px] border border-neutral-200 bg-white p-6 shadow-sm flex flex-col min-h-[430px] transition duration-200 hover:-translate-y-1 hover:border-neutral-300 hover:shadow-lg">
                             <div>
                                 <p class="text-xs font-semibold uppercase tracking-[.12em] text-neutral-400">Paket</p>
                                 <h2 class="mt-2 text-xl font-bold tracking-tight"><?= e($package['name']) ?></h2>
@@ -109,7 +109,7 @@ $freeRegistrationUrl = '/daftar.php?free=1';
                             </div>
 
                             <div class="mt-6">
-                                <div class="text-2xl font-bold"><?= rupiah($package['price']) ?></div>
+                                <div class="text-3xl font-bold tracking-tight"><?= rupiah($package['price']) ?></div>
                                 <div class="mt-1 text-xs text-neutral-400">
                                     <?= (int) $package['duration_days'] ?> hari
                                 </div>
@@ -120,7 +120,7 @@ $freeRegistrationUrl = '/daftar.php?free=1';
                             $maxStores = $package['max_store_count'] !== null ? (int) $package['max_store_count'] : null;
                             ?>
                             <?php if ($minStores !== null || $maxStores !== null): ?>
-                                <div class="mt-5 rounded-2xl bg-neutral-50 border border-neutral-100 px-4 py-3 text-sm">
+                                <div class="mt-5 rounded-2xl bg-neutral-50 border border-neutral-100 px-4 py-3 text-sm min-h-[72px]">
                                     <div class="font-semibold">Cakupan toko</div>
                                     <div class="mt-1 text-neutral-500">
                                         <?php if ($maxStores === null): ?>
@@ -135,7 +135,7 @@ $freeRegistrationUrl = '/daftar.php?free=1';
                             <?php endif; ?>
 
                             <a href="/daftar.php?package_id=<?= (int) $package['id'] ?>"
-                               class="mt-6 w-full h-11 rounded-xl bg-neutral-900 text-white flex items-center justify-center text-sm font-semibold hover:bg-neutral-800 transition">
+                               class="mt-auto w-full h-12 rounded-xl bg-neutral-900 text-white flex items-center justify-center text-sm font-semibold hover:bg-neutral-800 transition shadow-sm">
                                 Pilih paket
                             </a>
                         </article>
