@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 $root = dirname(__DIR__);
 $checkout = $root . '/checkout.php';
+$developerPaymentView = $root . '/developer/payments/view.php';
 
 function assertContract(bool $condition, string $message): void
 {
@@ -13,8 +14,10 @@ function assertContract(bool $condition, string $message): void
 }
 
 assertContract(is_file($checkout), 'checkout.php harus tersedia');
+assertContract(is_file($developerPaymentView), 'developer payment detail harus tersedia');
 
 $source = file_get_contents($checkout);
+$developerSource = file_get_contents($developerPaymentView);
 
 foreach ([
     "enctype="multipart/form-data"",
