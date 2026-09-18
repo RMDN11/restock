@@ -63,6 +63,8 @@ foreach ([
 
 foreach ([
     'function restockSyncSubscriptionExpiry',
+    'function restockGetActiveStoreCount',
+    'function restockPackageCoversStoreCount',
     'function restockGetActiveSubscription',
     'function restockHasActiveSubscription',
     'function restockRequireActiveSubscription',
@@ -118,14 +120,17 @@ foreach ([
     'function restockSpecialAccessTokenHash',
     'function restockSyncSpecialAccess',
     'special_access_token',
+    'access_scope',
     'token_hash',
-    'expires_at > CURRENT_TIMESTAMP',
+    'expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP',
 ] as $needle) {
     assertContract(str_contains($specialHelper, $needle), 'Helper special access tidak lengkap: ' . $needle);
 }
 
 foreach ([
     'Perpanjang akses RESTOCK',
+    'min_store_count',
+    'max_store_count',
     '/renewal/select.php',
     'duration_days',
     'Pembayaran renewal',
