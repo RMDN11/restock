@@ -45,7 +45,14 @@ $username = '';
 $email = '';
 $storeName = '';
 $slug = '';
+$packageId = null;
+$selectedPackage = null;
 $errors = [];
+
+$rawPackageId = filter_input(INPUT_GET, 'package_id', FILTER_VALIDATE_INT);
+if ($rawPackageId !== null && $rawPackageId !== false) {
+    $packageId = (int) $rawPackageId;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postedToken = (string) ($_POST['csrf_token'] ?? '');
@@ -60,6 +67,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password_confirm = (string) ($_POST['password_confirm'] ?? '');
     $storeName = trim((string) ($_POST['store_name'] ?? ''));
     $slug = trim((string) ($_POST['slug'] ?? ''));
+    if ($_POST['package_id'] ?? null) {
+        $postedPackageId = filter_var($_POST['package_id'], FILTER_VALIDATE_INT);
+        if ($postedPackageId !== false && $postedPackageId !== null) {
+            $packageId = (int) $postedPackageId;
+        }
+    }
 
     if ($name === '') {
         $errors[] = 'Nama wajib diisi.';
@@ -111,6 +124,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Slug toko maksimal 180 karakter.';
     } elseif (!preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug)) {
         $errors[] = 'Slug hanya boleh berisi huruf kecil, angka, dan tanda hubung.';
+    }
+
+    if ($packageId === null || $packageId <= 0) {
+        $errors[] = 'Pilih paket terlebih dahulu sebelum membuat akun.';
+    } else {
+        $packageStmt = $pdo->prepare(
+            "SELECT id, name, price, duration_days FROM packages
+             WHERE id = :package_id AND status = 'ACTIVE' LIMIT 1"
+        );
+        $packageStmt->execute([':package_id' => $packageId]);
+        $selectedPackage = $packageStmt->fetch();
+
+        if (!$selectedPackage) {
+            $errors[] = 'Paket yang dipilih tidak tersedia atau sudah tidak aktif. Silakan pilih paket lain.';
+        }
     }
 
     if (!$errors) {
@@ -193,9 +221,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['store_id'] = $storeId;
             $_SESSION['store_name'] = $storeName;
             $_SESSION['store_slug'] = $slug;
+            $_SESSION['selected_package_id'] = $packageId;
             $_SESSION['login_at'] = time();
 
-            header('Location: /');
+            header('Location: /checkout.php');
             exit;
         } catch (PDOException $e) {
             if ($pdo->inTransaction()) {
@@ -268,6 +297,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <form method="POST" id="registerForm" novalidate>
                 <input type="hidden" name="csrf_token" value="<?= e($csrfToken) ?>">
+                <input type="hidden" name="package_id" value="<?= e($packageId) ?>">
+
+                <?php if ($selectedPackage || $packageId !== null): ?>
+                    <div class="mb-6 rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3">
+                        <div class="flex items-center justify-between gap-4">
+                            <div class="min-w-0">
+                                <p class="text-xs font-semibold uppercase tracking-[0.12em] text-neutral-400">Paket dipilih</p>
+                                <?php if ($selectedPackage): ?>
+                                    <p class="mt-1 truncate text-sm font-semibold text-neutral-900"><?= e($selectedPackage['name']) ?></p>
+                                <?php else: ?>
+                                    <p class="mt-1 text-sm font-semibold text-neutral-900">Paket akan diverifikasi</p>
+                                <?php endif; ?>
+                            </div>
+                            <?php if ($selectedPackage): ?>
+                                <span class="shrink-0 text-sm font-semibold text-neutral-900">Rp <?= number_format((float) $selectedPackage['price'], 0, ',', '.') ?></span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
 
                 <div class="section-title">Akun</div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 grid-gap mt-4">
