@@ -36,6 +36,8 @@ foreach ([
     "store_id = :store_id",
     "hash_equals",
     "csrf_token",
+    "proofStmt",
+    "Bukti hanya dapat diunggah untuk pembayaran yang masih PENDING.",
 ] as $needle) {
     assertContract(str_contains($source, $needle), 'Kontrak upload bukti tidak ditemukan: ' . $needle);
 }
