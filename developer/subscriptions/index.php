@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/../includes/developer_auth.php';
+require_once __DIR__ . '/../../includes/developer_auth.php';
 
 $pageTitle = 'Subscription';
 
