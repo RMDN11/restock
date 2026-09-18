@@ -123,6 +123,7 @@ $totalSubscriptions = count($subscriptions);
 $activeSubscriptions = 0;
 $expiredSubscriptions = 0;
 $cancelledSubscriptions = 0;
+$totalFilteredAmount = 0.0;
 
 foreach ($subscriptions as $subscription) {
     switch ($subscription['status']) {
@@ -135,6 +136,10 @@ foreach ($subscriptions as $subscription) {
         case 'CANCELLED':
             $cancelledSubscriptions++;
             break;
+    }
+
+    if ($subscription['status'] === 'ACTIVE' || $subscription['status'] === 'EXPIRED') {
+        $totalFilteredAmount += (float) $subscription['package_price'];
     }
 }
 
@@ -150,7 +155,12 @@ require_once __DIR__ . '/../includes/sidebar.php';
             <p class="text-sm text-neutral-500 mt-2">Pantau periode subscription account dan store.</p>
         </div>
 
-        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+            <div class="bento-card p-5">
+                <p class="text-sm text-neutral-500">Nilai Paket</p>
+                <p class="text-2xl font-semibold tracking-tight mt-3"><?= rupiah($totalFilteredAmount) ?></p>
+                <p class="text-xs text-neutral-400 mt-1">ACTIVE + EXPIRED sesuai filter</p>
+            </div>
             <div class="bento-card p-5">
                 <p class="text-sm text-neutral-500">Total</p>
                 <p class="text-3xl font-semibold tracking-tight mt-3"><?= number_format($totalSubscriptions) ?></p>
@@ -229,12 +239,14 @@ require_once __DIR__ . '/../includes/sidebar.php';
                                 <th class="px-5 md:px-6 py-3 font-medium">Paket</th>
                                 <th class="px-5 md:px-6 py-3 font-medium">Periode</th>
                                 <th class="px-5 md:px-6 py-3 font-medium">Status</th>
+                                <th class="px-5 md:px-6 py-3 font-medium text-right">Detail</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-neutral-100">
                             <?php foreach ($subscriptions as $subscription): ?>
                                 <tr class="align-top hover:bg-neutral-50/70">
                                     <td class="px-5 md:px-6 py-4">
+
                                         <p class="font-medium text-neutral-900">#<?= e($subscription['id']) ?></p>
                                         <p class="text-xs text-neutral-400 mt-1">
                                             Payment #<?= e($subscription['payment_id']) ?>
@@ -268,6 +280,14 @@ require_once __DIR__ . '/../includes/sidebar.php';
                                         <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium <?= e(statusClass((string) $subscription['status'])) ?>">
                                             <?= e($subscription['status']) ?>
                                         </span>
+                                    </td>
+                                    <td class="px-5 md:px-6 py-4 text-right">
+                                        <a
+                                            href="/developer/payments/view.php?id=<?= (int) $subscription['payment_id'] ?>"
+                                            class="inline-flex min-h-9 items-center justify-center rounded-lg border border-neutral-200 bg-white px-3 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
+                                        >
+                                            Lihat Payment
+                                        </a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
