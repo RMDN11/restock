@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../includes/developer_auth.php';
 
 $pageTitle = 'Paket';
+if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 
 function e($value): string
 {
