@@ -418,6 +418,15 @@ $pageTitle = 'Checkout';
     </main>
 
     <script>
+        document.querySelectorAll('.mb-5.rounded-2xl.border').forEach(function (notice) {
+            window.setTimeout(function () {
+                notice.style.transition = 'opacity 200ms ease, transform 200ms ease';
+                notice.style.opacity = '0';
+                notice.style.transform = 'translateY(-4px)';
+                window.setTimeout(function () { notice.remove(); }, 220);
+            }, 3000);
+        });
+
         const form = document.getElementById('checkoutForm');
         const button = document.getElementById('checkoutButton');
 
