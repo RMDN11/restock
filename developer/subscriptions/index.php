@@ -35,15 +35,24 @@ function statusClass(string $status): string
     };
 }
 
+$search = trim((string) ($_GET['q'] ?? ''));
+$status = strtoupper(trim((string) ($_GET['status'] ?? '')));
+
+if (!in_array($status, ['', 'ACTIVE', 'EXPIRED', 'CANCELLED'], true)) {
+    $status = '';
+}
+
+$subscriptions = [];
+$totalSubscriptions = 0;
+$activeSubscriptions = 0;
+$expiredSubscriptions = 0;
+$cancelledSubscriptions = 0;
+$totalFilteredAmount = 0.0;
+$activeAccountCount = 0;
+$activeStoreCount = 0;
+$pageError = '';
+
 try {
-    $search = trim((string) ($_GET['q'] ?? ''));
-    $status = strtoupper(trim((string) ($_GET['status'] ?? '')));
-
-    $allowedStatuses = ['ACTIVE', 'EXPIRED', 'CANCELLED'];
-    if (!in_array($status, $allowedStatuses, true)) {
-        $status = '';
-    }
-
     $pdo->exec(
         "UPDATE subscriptions
          SET status = 'EXPIRED',
@@ -118,12 +127,6 @@ try {
     $stmt->execute($params);
     $subscriptions = $stmt->fetchAll();
 
-    $totalSubscriptions = count($subscriptions);
-    $activeSubscriptions = 0;
-    $expiredSubscriptions = 0;
-    $cancelledSubscriptions = 0;
-    $totalFilteredAmount = 0.0;
-
     foreach ($subscriptions as $subscription) {
         switch ($subscription['status']) {
             case 'ACTIVE':
@@ -142,23 +145,17 @@ try {
         }
     }
 
-    $pageError = '';
+    $totalSubscriptions = count($subscriptions);
 
-    $accountCountStmt = $pdo->query("SELECT COUNT(*) FROM accounts WHERE status = 'ACTIVE'");
-    $activeAccountCount = (int) $accountCountStmt->fetchColumn();
+    $activeAccountCount = (int) $pdo
+        ->query("SELECT COUNT(*) FROM accounts WHERE status = 'ACTIVE'")
+        ->fetchColumn();
 
-    $storeCountStmt = $pdo->query("SELECT COUNT(*) FROM stores WHERE status = 'ACTIVE'");
-    $activeStoreCount = (int) $storeCountStmt->fetchColumn();
+    $activeStoreCount = (int) $pdo
+        ->query("SELECT COUNT(*) FROM stores WHERE status = 'ACTIVE'")
+        ->fetchColumn();
 } catch (Throwable $e) {
-    $subscriptions = [];
-    $totalSubscriptions = 0;
-    $activeSubscriptions = 0;
-    $expiredSubscriptions = 0;
-    $cancelledSubscriptions = 0;
-    $totalFilteredAmount = 0.0;
-    $pageError = 'Data subscription belum dapat dimuat. Pastikan migration subscription sudah tersedia di database production.';
-    $activeAccountCount = 0;
-    $activeStoreCount = 0;
+    $pageError = 'Data subscription belum dapat dimuat. Pastikan tabel subscriptions sudah tersedia di database production.';
 }
 ?>
 <!DOCTYPE html>
@@ -171,8 +168,12 @@ try {
     <link rel="icon" type="image/png" href="/assets/images/logo.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/assets/css/app.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body class="bg-neutral-50 text-neutral-900">
+<?php require_once __DIR__ . '/../includes/header.php'; ?>
+<?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
+
 <main class="lg:ml-64 pt-16 min-h-screen">
     <div class="p-4 md:p-8 max-w-7xl mx-auto">
         <div class="mb-6">
@@ -188,56 +189,22 @@ try {
         <?php endif; ?>
 
         <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
-            <div class="bento-card p-5">
-                <p class="text-sm text-neutral-500">Account Aktif</p>
-                <p class="text-3xl font-semibold tracking-tight mt-3"><?= number_format($activeAccountCount) ?></p>
-                <p class="text-xs text-neutral-400 mt-1">Account aktif di platform</p>
-            </div>
-            <div class="bento-card p-5">
-                <p class="text-sm text-neutral-500">Store Aktif</p>
-                <p class="text-3xl font-semibold tracking-tight mt-3"><?= number_format($activeStoreCount) ?></p>
-                <p class="text-xs text-neutral-400 mt-1">Store aktif di platform</p>
-            </div>
-            <div class="bento-card p-5">
-                <p class="text-sm text-neutral-500">Nilai Paket</p>
-                <p class="text-2xl font-semibold tracking-tight mt-3"><?= rupiah($totalFilteredAmount) ?></p>
-                <p class="text-xs text-neutral-400 mt-1">ACTIVE + EXPIRED sesuai filter</p>
-            </div>
-            <div class="bento-card p-5">
-                <p class="text-sm text-neutral-500">Total</p>
-                <p class="text-3xl font-semibold tracking-tight mt-3"><?= number_format($totalSubscriptions) ?></p>
-                <p class="text-xs text-neutral-400 mt-1">Hasil sesuai filter</p>
-            </div>
-            <div class="bento-card p-5">
-                <p class="text-sm text-neutral-500">Aktif</p>
-                <p class="text-3xl font-semibold tracking-tight mt-3"><?= number_format($activeSubscriptions) ?></p>
-                <p class="text-xs text-neutral-400 mt-1">Status ACTIVE</p>
-            </div>
-            <div class="bento-card p-5">
-                <p class="text-sm text-neutral-500">Expired</p>
-                <p class="text-3xl font-semibold tracking-tight mt-3"><?= number_format($expiredSubscriptions) ?></p>
-                <p class="text-xs text-neutral-400 mt-1">Periode sudah berakhir</p>
-            </div>
-            <div class="bento-card p-5">
-                <p class="text-sm text-neutral-500">Cancelled</p>
-                <p class="text-3xl font-semibold tracking-tight mt-3"><?= number_format($cancelledSubscriptions) ?></p>
-                <p class="text-xs text-neutral-400 mt-1">Subscription dibatalkan</p>
-            </div>
+            <div class="bento-card p-5"><p class="text-sm text-neutral-500">Account Aktif</p><p class="text-3xl font-semibold tracking-tight mt-3"><?= number_format($activeAccountCount) ?></p><p class="text-xs text-neutral-400 mt-1">Account aktif di platform</p></div>
+            <div class="bento-card p-5"><p class="text-sm text-neutral-500">Store Aktif</p><p class="text-3xl font-semibold tracking-tight mt-3"><?= number_format($activeStoreCount) ?></p><p class="text-xs text-neutral-400 mt-1">Store aktif di platform</p></div>
+            <div class="bento-card p-5"><p class="text-sm text-neutral-500">Nilai Paket</p><p class="text-2xl font-semibold tracking-tight mt-3"><?= rupiah($totalFilteredAmount) ?></p><p class="text-xs text-neutral-400 mt-1">ACTIVE + EXPIRED sesuai filter</p></div>
+            <div class="bento-card p-5"><p class="text-sm text-neutral-500">Total</p><p class="text-3xl font-semibold tracking-tight mt-3"><?= number_format($totalSubscriptions) ?></p><p class="text-xs text-neutral-400 mt-1">Hasil sesuai filter</p></div>
+            <div class="bento-card p-5"><p class="text-sm text-neutral-500">Aktif</p><p class="text-3xl font-semibold tracking-tight mt-3"><?= number_format($activeSubscriptions) ?></p><p class="text-xs text-neutral-400 mt-1">Status ACTIVE</p></div>
+            <div class="bento-card p-5"><p class="text-sm text-neutral-500">Expired</p><p class="text-3xl font-semibold tracking-tight mt-3"><?= number_format($expiredSubscriptions) ?></p><p class="text-xs text-neutral-400 mt-1">Periode sudah berakhir</p></div>
+            <div class="bento-card p-5"><p class="text-sm text-neutral-500">Cancelled</p><p class="text-3xl font-semibold tracking-tight mt-3"><?= number_format($cancelledSubscriptions) ?></p><p class="text-xs text-neutral-400 mt-1">Subscription dibatalkan</p></div>
         </section>
 
         <section class="bento-card p-4 md:p-5 mb-5">
             <form method="get" class="grid grid-cols-1 md:grid-cols-[1fr_180px_auto] gap-3">
-                <input
-                    type="search"
-                    name="q"
-                    value="<?= e($search ?? '') ?>"
-                    placeholder="Cari ID, account, store, paket, user, email..."
-                    class="min-h-11 rounded-xl border border-neutral-200 px-3 text-sm outline-none focus:border-neutral-400"
-                >
+                <input type="search" name="q" value="<?= e($search) ?>" placeholder="Cari ID, account, store, paket, user, email..." class="min-h-11 rounded-xl border border-neutral-200 px-3 text-sm outline-none focus:border-neutral-400">
                 <select name="status" class="min-h-11 rounded-xl border border-neutral-200 px-3 text-sm bg-white">
                     <option value="">Semua status</option>
                     <?php foreach (['ACTIVE', 'EXPIRED', 'CANCELLED'] as $option): ?>
-                        <option value="<?= e($option) ?>" <?= ($status ?? '') === $option ? 'selected' : '' ?>><?= e($option) ?></option>
+                        <option value="<?= e($option) ?>" <?= $status === $option ? 'selected' : '' ?>><?= e($option) ?></option>
                     <?php endforeach; ?>
                 </select>
                 <button type="submit" class="min-h-11 rounded-xl bg-neutral-900 px-5 text-sm font-semibold text-white">Filter</button>
@@ -259,9 +226,7 @@ try {
                         <i data-lucide="credit-card" class="w-5 h-5 text-neutral-500"></i>
                     </div>
                     <p class="text-sm font-medium mt-3">Belum ada subscription</p>
-                    <p class="text-xs text-neutral-400 mt-1">
-                        <?= $pageError ? e($pageError) : 'Subscription yang aktif melalui pembayaran terverifikasi akan muncul di sini.' ?>
-                    </p>
+                    <p class="text-xs text-neutral-400 mt-1"><?= $pageError ? e($pageError) : 'Subscription yang aktif melalui pembayaran terverifikasi akan muncul di sini.' ?></p>
                 </div>
             <?php else: ?>
                 <div class="overflow-x-auto">
@@ -279,43 +244,12 @@ try {
                         <tbody class="divide-y divide-neutral-100">
                             <?php foreach ($subscriptions as $subscription): ?>
                                 <tr class="align-top hover:bg-neutral-50/70">
-                                    <td class="px-5 md:px-6 py-4">
-                                        <p class="font-medium text-neutral-900">#<?= e($subscription['id']) ?></p>
-                                        <p class="text-xs text-neutral-400 mt-1">Payment #<?= e($subscription['payment_id']) ?></p>
-                                    </td>
-                                    <td class="px-5 md:px-6 py-4">
-                                        <p class="font-medium text-neutral-900"><?= e($subscription['account_name']) ?></p>
-                                        <p class="text-xs text-neutral-500 mt-1"><?= e($subscription['store_name']) ?></p>
-                                        <?php if (!empty($subscription['user_name'])): ?>
-                                            <p class="text-xs text-neutral-400 mt-1">
-                                                <?= e($subscription['user_name']) ?>
-                                                <?php if (!empty($subscription['user_email'])): ?> · <?= e($subscription['user_email']) ?><?php endif; ?>
-                                            </p>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="px-5 md:px-6 py-4">
-                                        <p class="font-medium text-neutral-900"><?= e($subscription['package_name']) ?></p>
-                                        <p class="text-xs text-neutral-400 mt-1"><?= (int) $subscription['duration_days'] ?> hari · <?= rupiah($subscription['package_price']) ?></p>
-                                    </td>
-                                    <td class="px-5 md:px-6 py-4">
-                                        <p class="text-xs text-neutral-400">Mulai</p>
-                                        <p class="font-medium"><?= e(formatDateTime($subscription['starts_at'])) ?></p>
-                                        <p class="text-xs text-neutral-400 mt-3">Berakhir</p>
-                                        <p class="font-medium"><?= e(formatDateTime($subscription['ends_at'])) ?></p>
-                                    </td>
-                                    <td class="px-5 md:px-6 py-4">
-                                        <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium <?= e(statusClass((string) $subscription['status'])) ?>">
-                                            <?= e($subscription['status']) ?>
-                                        </span>
-                                    </td>
-                                    <td class="px-5 md:px-6 py-4 text-right">
-                                        <a
-                                            href="/developer/payments/view.php?id=<?= (int) $subscription['payment_id'] ?>"
-                                            class="inline-flex min-h-9 items-center justify-center rounded-lg border border-neutral-200 bg-white px-3 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
-                                        >
-                                            Lihat Payment
-                                        </a>
-                                    </td>
+                                    <td class="px-5 md:px-6 py-4"><p class="font-medium text-neutral-900">#<?= e($subscription['id']) ?></p><p class="text-xs text-neutral-400 mt-1">Payment #<?= e($subscription['payment_id']) ?></p></td>
+                                    <td class="px-5 md:px-6 py-4"><p class="font-medium text-neutral-900"><?= e($subscription['account_name']) ?></p><p class="text-xs text-neutral-500 mt-1"><?= e($subscription['store_name']) ?></p><?php if (!empty($subscription['user_name'])): ?><p class="text-xs text-neutral-400 mt-1"><?= e($subscription['user_name']) ?><?php if (!empty($subscription['user_email'])): ?> · <?= e($subscription['user_email']) ?><?php endif; ?></p><?php endif; ?></td>
+                                    <td class="px-5 md:px-6 py-4"><p class="font-medium text-neutral-900"><?= e($subscription['package_name']) ?></p><p class="text-xs text-neutral-400 mt-1"><?= (int) $subscription['duration_days'] ?> hari · <?= rupiah($subscription['package_price']) ?></p></td>
+                                    <td class="px-5 md:px-6 py-4"><p class="text-xs text-neutral-400">Mulai</p><p class="font-medium"><?= e(formatDateTime($subscription['starts_at'])) ?></p><p class="text-xs text-neutral-400 mt-3">Berakhir</p><p class="font-medium"><?= e(formatDateTime($subscription['ends_at'])) ?></p></td>
+                                    <td class="px-5 md:px-6 py-4"><span class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium <?= e(statusClass((string) $subscription['status'])) ?>"><?= e($subscription['status']) ?></span></td>
+                                    <td class="px-5 md:px-6 py-4 text-right"><a href="/developer/payments/view.php?id=<?= (int) $subscription['payment_id'] ?>" class="inline-flex min-h-9 items-center justify-center rounded-lg border border-neutral-200 bg-white px-3 text-xs font-medium text-neutral-700 hover:bg-neutral-50">Lihat Payment</a></td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -326,25 +260,4 @@ try {
     </div>
 </main>
 
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const notice = document.getElementById('subscriptionPageNotice');
-    if (notice) {
-        setTimeout(function () {
-            notice.style.transition = 'opacity 200ms ease, transform 200ms ease';
-            notice.style.opacity = '0';
-            notice.style.transform = 'translateY(-4px)';
-            setTimeout(function () {
-                notice.remove();
-            }, 220);
-        }, 3000);
-    }
-
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
-    }
-});
-</script>
-<script src="https://unpkg.com/lucide@latest"></script>
-</body>
-</html>
+<?php require_once __DIR__ . '/../includes/footer.php'; ?>
