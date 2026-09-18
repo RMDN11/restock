@@ -280,6 +280,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if (establishStoreSession($pdo, $user)) {
+                $pendingSpecialAccessToken = trim((string) ($_SESSION['pending_special_access_token'] ?? ''));
+                unset($_SESSION['pending_special_access_token']);
+
+                if ($pendingSpecialAccessToken !== '') {
+                    header('Location: /developer-access.php?token=' . rawurlencode($pendingSpecialAccessToken));
+                    exit;
+                }
+
                 header('Location: /');
                 exit;
             }
