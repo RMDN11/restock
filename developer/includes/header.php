@@ -30,6 +30,12 @@ $authName = $authName ?? 'Developer';
             </a>
         </div>
         <div class="flex items-center gap-2">
+            <a href="/" class="hidden sm:inline-flex h-10 items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 text-sm font-medium text-neutral-600 hover:bg-neutral-50" title="Buka aplikasi">
+                <i data-lucide="external-link" class="w-4 h-4"></i>Aplikasi
+            </a>
+            <button type="button" onclick="window.location.reload()" class="w-10 h-10 rounded-xl hover:bg-neutral-100 flex items-center justify-center" title="Muat ulang" aria-label="Muat ulang">
+                <i data-lucide="refresh-cw" class="w-4 h-4 text-neutral-500"></i>
+            </button>
             <div class="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl bg-neutral-50 border border-neutral-100">
                 <span class="w-7 h-7 rounded-lg bg-neutral-900 text-white flex items-center justify-center text-xs font-semibold"><?= htmlspecialchars(strtoupper(substr($authName, 0, 1)), ENT_QUOTES, 'UTF-8') ?></span>
                 <div class="leading-tight">

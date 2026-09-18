@@ -10,6 +10,13 @@ $isFreePlan = strpos($currentPath, '/developer/free-plan/') === 0;
 ?>
 <aside id="developerSidebar" class="fixed z-50 inset-y-0 left-0 w-64 bg-white border-r border-neutral-200 pt-16 transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-out">
     <div class="h-full flex flex-col p-3 overflow-y-auto">
+        <a href="/developer/" class="mb-3 flex items-center gap-3 rounded-2xl border border-neutral-100 bg-neutral-50 px-3 py-3 hover:bg-white transition">
+            <img src="/assets/images/logo.png" alt="RESTOCK" class="w-10 h-10 rounded-xl object-contain bg-white border border-neutral-100">
+            <div class="min-w-0 leading-tight">
+                <div class="font-semibold tracking-tight">RESTOCK</div>
+                <div class="text-[10px] uppercase tracking-[0.18em] text-neutral-400 mt-0.5">Developer Console</div>
+            </div>
+        </a>
         <nav class="space-y-1">
             <p class="px-3 pt-2 pb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-400">Main</p>
             <a href="/developer/" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm <?= $isOverview ? 'bg-neutral-50 font-medium text-neutral-900' : 'text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900' ?>">
@@ -40,6 +47,9 @@ $isFreePlan = strpos($currentPath, '/developer/free-plan/') === 0;
         </nav>
 
         <div class="mt-auto pt-4 border-t border-neutral-100 space-y-1">
+            <a href="/" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900">
+                <i data-lucide="external-link" class="w-4 h-4"></i><span>Buka Aplikasi</span>
+            </a>
             <a href="/logout.php" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900">
                 <i data-lucide="log-out" class="w-4 h-4"></i><span>Keluar</span>
             </a>

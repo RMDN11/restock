@@ -197,11 +197,11 @@ require_once __DIR__ . '/includes/sidebar.php';
                     <div id="specialAccessNotice" class="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"><?= e($accessError) ?></div>
                 <?php endif; ?>
                 <?php if ($accessCreatedToken): ?>
-                    <div class="mt-4 rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
-                        <p class="text-xs text-neutral-500">Link yang baru dibuat</p>
+                    <div class="mt-4 rounded-2xl border border-blue-200 bg-blue-50/70 p-4">
+                        <p class="text-xs font-semibold text-blue-700">Link yang baru dibuat</p>
                         <div class="mt-2 flex flex-col gap-2 sm:flex-row">
                             <input id="specialAccessLink" type="text" readonly value="<?= e(((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://') . ($_SERVER['HTTP_HOST'] ?? 'restock.reqra.my.id') . '/developer-access.php?token=' . $accessCreatedToken) ?>" class="min-h-11 min-w-0 flex-1 rounded-xl border border-neutral-200 bg-white px-3 text-xs text-neutral-700">
-                            <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('specialAccessLink').value)" class="min-h-11 rounded-xl border border-neutral-200 bg-white px-4 text-sm font-medium text-neutral-700">Salin</button>
+                            <button type="button" id="copySpecialAccessLink" class="min-h-11 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 transition inline-flex items-center justify-center gap-2"><i data-lucide="copy" class="w-4 h-4"></i><span>Salin Link</span></button>
                         </div>
                     </div>
                 <?php endif; ?>
@@ -260,9 +260,9 @@ require_once __DIR__ . '/includes/sidebar.php';
         </section>
 
         <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div class="bento-card p-5">
+            <div class="bento-card p-5 border-l-4 border-blue-500">
                 <div class="flex items-center justify-between gap-3">
-                    <span class="text-sm text-neutral-500">Total Account</span>
+                    <span class="text-sm text-blue-700 font-medium">Total Account</span>
                     <span class="w-10 h-10 rounded-2xl bg-neutral-100 flex items-center justify-center">
                         <i data-lucide="users" class="w-5 h-5 text-neutral-700"></i>
                     </span>
@@ -271,9 +271,9 @@ require_once __DIR__ . '/includes/sidebar.php';
                 <p class="text-xs text-neutral-400 mt-1">Seluruh account terdaftar</p>
             </div>
 
-            <div class="bento-card p-5">
+            <div class="bento-card p-5 border-l-4 border-teal-500">
                 <div class="flex items-center justify-between gap-3">
-                    <span class="text-sm text-neutral-500">Total Toko</span>
+                    <span class="text-sm text-teal-700 font-medium">Total Toko</span>
                     <span class="w-10 h-10 rounded-2xl bg-neutral-100 flex items-center justify-center">
                         <i data-lucide="store" class="w-5 h-5 text-neutral-700"></i>
                     </span>
@@ -282,9 +282,9 @@ require_once __DIR__ . '/includes/sidebar.php';
                 <p class="text-xs text-neutral-400 mt-1">Seluruh toko terdaftar</p>
             </div>
 
-            <div class="bento-card p-5">
+            <div class="bento-card p-5 border-l-4 border-emerald-500">
                 <div class="flex items-center justify-between gap-3">
-                    <span class="text-sm text-neutral-500">Account Aktif</span>
+                    <span class="text-sm text-emerald-700 font-medium">Account Aktif</span>
                     <span class="w-10 h-10 rounded-2xl bg-neutral-100 flex items-center justify-center">
                         <i data-lucide="user-check" class="w-5 h-5 text-neutral-700"></i>
                     </span>
@@ -293,9 +293,9 @@ require_once __DIR__ . '/includes/sidebar.php';
                 <p class="text-xs text-neutral-400 mt-1">Status ACTIVE</p>
             </div>
 
-            <div class="bento-card p-5">
+            <div class="bento-card p-5 border-l-4 border-violet-500">
                 <div class="flex items-center justify-between gap-3">
-                    <span class="text-sm text-neutral-500">Toko Aktif</span>
+                    <span class="text-sm text-violet-700 font-medium">Toko Aktif</span>
                     <span class="w-10 h-10 rounded-2xl bg-neutral-100 flex items-center justify-center">
                         <i data-lucide="store" class="w-5 h-5 text-neutral-700"></i>
                     </span>
