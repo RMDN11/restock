@@ -25,6 +25,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/subscription.php';
 
 function destroyRestockAuthSession(): void {
     $_SESSION = [];
@@ -175,6 +176,31 @@ if (!$membership) {
     destroyRestockAuthSession();
     header('Location: /login.php');
     exit;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Subscription access gate
+|--------------------------------------------------------------------------
+| Checkout dan halaman subscription tetap dapat diakses agar akun tanpa
+| subscription bisa membayar/renew. Area aplikasi lainnya membutuhkan
+| subscription ACTIVE yang belum melewati ends_at.
+*/
+$requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+
+$subscriptionExemptPaths = [
+    '/checkout.php',
+    '/subscription.php',
+];
+
+$isSubscriptionExempt = in_array($requestPath, $subscriptionExemptPaths, true);
+
+if (!$isSubscriptionExempt) {
+    restockRequireActiveSubscription(
+        $pdo,
+        (int) $membership['account_id'],
+        (int) $membership['store_id']
+    );
 }
 
 /*
