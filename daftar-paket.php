@@ -20,11 +20,13 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-if (!empty($_SESSION['user_id'])) {
+$hasCheckoutContext = !empty($_SESSION['selected_package_id'])
+    && in_array((string) ($_SESSION['checkout_origin'] ?? ''), ['/daftar-paket.php', '/renewal.php'], true);
+
+if (!empty($_SESSION['user_id']) && !$hasCheckoutContext) {
     header('Location: /');
     exit;
 }
-
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/includes/package_pricing.php';
 
