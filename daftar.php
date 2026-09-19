@@ -18,6 +18,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/includes/free_plan.php';
+require_once __DIR__ . '/includes/package_pricing.php';
 
 function e($value): string
 {
@@ -48,6 +49,8 @@ $storeName = '';
 $slug = '';
 $packageId = null;
 $selectedPackage = null;
+$storeCount = null;
+$selectedPricingTier = null;
 $freePlanToken = trim((string) ($_GET['free_token'] ?? ''));
 $freeRegistration = (string) ($_GET['free'] ?? '') === '1';
 $freePlanInvite = $freePlanToken !== '' ? restockFreePlanFindInvite($pdo, $freePlanToken) : null;
@@ -56,6 +59,11 @@ $errors = [];
 $rawPackageId = filter_input(INPUT_GET, 'package_id', FILTER_VALIDATE_INT);
 if ($rawPackageId !== null && $rawPackageId !== false) {
     $packageId = (int) $rawPackageId;
+}
+
+$rawStoreCount = filter_input(INPUT_GET, 'store_count', FILTER_VALIDATE_INT);
+if ($rawStoreCount !== null && $rawStoreCount !== false && $rawStoreCount > 0) {
+    $storeCount = (int) $rawStoreCount;
 }
 
 function activeStoreCountForAccount(PDO $pdo, int $accountId): int
@@ -82,17 +90,26 @@ function findActivePackage(PDO $pdo, ?int $packageId): ?array
     }
 
     $packageStmt = $pdo->prepare(
-        "SELECT id, name, price, duration_days, min_store_count, max_store_count FROM packages
+        "SELECT id, name, price, duration_days, min_store_count, max_store_count, description FROM packages
          WHERE id = :package_id AND status = 'ACTIVE' LIMIT 1"
     );
     $packageStmt->execute([':package_id' => $packageId]);
     $package = $packageStmt->fetch();
 
-    return $package ?: null;
+    if (!$package) {
+        return null;
+    }
+
+    $package['tiers'] = restockGetPackageTiers($pdo, (int) $package['id']);
+
+    return $package;
 }
 
 if ($packageId !== null) {
     $selectedPackage = findActivePackage($pdo, $packageId);
+    if ($selectedPackage && $storeCount === null) {
+        $storeCount = restockGetPackageDefaultStoreCount($selectedPackage);
+    }
 }
 
 $registrationPackagesStmt = $pdo->prepare(
@@ -126,6 +143,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $slug = trim((string) ($_POST['slug'] ?? ''));
     $freePlanToken = trim((string) ($_POST['free_token'] ?? $freePlanToken));
     $freeRegistration = (string) ($_POST['free_registration'] ?? ($freeRegistration ? '1' : '')) === '1';
+
+    $postedStoreCount = filter_var($_POST['store_count'] ?? null, FILTER_VALIDATE_INT);
+    if ($postedStoreCount !== false && $postedStoreCount !== null && $postedStoreCount > 0) {
+        $storeCount = (int) $postedStoreCount;
+    }
 
     if ($_POST['package_id'] ?? null) {
         $postedPackageId = filter_var($_POST['package_id'], FILTER_VALIDATE_INT);
@@ -207,6 +229,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($freeRegistration && $freePlanToken === '') {
         $packageId = null;
         $selectedPackage = null;
+        $storeCount = 1;
+        $selectedPricingTier = null;
+    }
+
+    if ($freePlanToken !== '') {
+        $storeCount = 1;
+        $selectedPricingTier = null;
+    }
+
+    if (!$errors && $freePlanToken === '' && !$freeRegistration) {
+        if (!$selectedPackage) {
+            $errors[] = 'Paket belum dipilih.';
+        } elseif ($storeCount === null || $storeCount < 1) {
+            $errors[] = 'Jumlah toko wajib dipilih.';
+        } else {
+            $selectedPricingTier = restockFindPackagePriceTier($pdo, (int) $selectedPackage['id'], (int) $storeCount);
+            if (!$selectedPricingTier) {
+                $errors[] = 'Jumlah toko tersebut belum memiliki harga aktif pada paket ini. Silakan pilih jumlah toko lain.';
+            }
+        }
     }
 
     if (!$errors) {
@@ -302,6 +344,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['store_name'] = $storeName;
             $_SESSION['store_slug'] = $slug;
             $_SESSION['selected_package_id'] = ($freePlanToken !== '' || $freeRegistration) ? null : $packageId;
+            $_SESSION['selected_store_count'] = ($freePlanToken !== '' || $freeRegistration) ? 1 : $storeCount;
+            $_SESSION['selected_pricing_tier_id'] = ($freePlanToken !== '' || $freeRegistration) ? null : (int) ($selectedPricingTier['id'] ?? 0);
             $_SESSION['checkout_origin'] = '/daftar-paket.php';
             $_SESSION['login_at'] = time();
 
@@ -416,7 +460,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <span class="shrink-0 rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-700">Pilih</span>
                             </div>
                             <p class="mt-5 text-2xl font-semibold tracking-tight text-neutral-900">
-                                Rp <?= number_format((float) $package['price'], 0, ',', '.') ?>
+                                Rp <?= number_format((float) restockGetPackageStartingPrice($package), 0, ',', '.') ?>
                             </p>
                             <?php if (!empty($package['description'])): ?>
                                 <p class="mt-3 text-sm leading-6 text-neutral-500"><?= e($package['description']) ?></p>
@@ -434,6 +478,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="hidden" name="package_id" value="<?= e($packageId) ?>">
                 <input type="hidden" name="free_token" value="<?= e($freePlanToken) ?>">
                 <input type="hidden" name="free_registration" value="<?= $freeRegistration ? '1' : '0' ?>">
+                <input type="hidden" name="store_count" value="<?= $freeRegistration || $freePlanToken !== '' ? 1 : e($storeCount) ?>">
 <?php if ($freeRegistration): ?>
                     <div class="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
                         <div class="flex items-start gap-3">
@@ -461,12 +506,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 <?php endif; ?>
 
-                <?php if ($packageStoreCoverageError): ?>
-    <div class="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-        <?= e($packageStoreCoverageError) ?>
-    </div>
-<?php endif; ?>
-
+                
                 <?php if ($selectedPackage || $packageId !== null): ?>
                     <div class="mb-6 rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3">
                         <div class="flex items-center justify-between gap-4">
@@ -479,7 +519,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <?php endif; ?>
                             </div>
                             <?php if ($selectedPackage): ?>
-                                <span class="shrink-0 text-sm font-semibold text-neutral-900">Rp <?= number_format((float) $selectedPackage['price'], 0, ',', '.') ?></span>
+                                <span class="shrink-0 text-right text-sm font-semibold text-neutral-900">
+                                    <?= $storeCount ? e($storeCount) . ' toko' : 'Jumlah toko belum dipilih' ?><br>
+                                    <?= $selectedPricingTier ? 'Rp ' . number_format((float) $selectedPricingTier['price'], 0, ',', '.') : 'Harga ditentukan saat checkout' ?>
+                                </span>
                             <?php endif; ?>
                         </div>
                     </div>
