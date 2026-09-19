@@ -10,6 +10,7 @@ $isTitipan     = strpos($currentPath, '/pages/titipan/') === 0;
 $isPengeluaran = strpos($currentPath, '/pages/pengeluaran/') === 0;
 $isLaporan     = strpos($currentPath, '/pages/laporan/') === 0;
 $isPengaturan  = strpos($currentPath, '/pages/pengaturan/') === 0;
+$isStores       = $currentPath === '/stores.php';
 
 ?>
 
@@ -123,6 +124,16 @@ $isPengaturan  = strpos($currentPath, '/pages/pengaturan/') === 0;
 
         <!-- BOTTOM MENU -->
         <div class="sidebar-bottom">
+
+            <a
+                href="/stores.php"
+                data-menu="toko-saya"
+                class="sidebar-link <?= $isStores ? 'active' : '' ?>"
+                <?= $isStores ? 'aria-current="page"' : '' ?>
+            >
+                <i data-lucide="store"></i>
+                <span>Toko Saya</span>
+            </a>
 
             <a
                 href="/pages/pengaturan/"
