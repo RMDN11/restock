@@ -20,6 +20,11 @@ $stmt = $pdo->prepare(
     "SELECT id, name, slug, price, duration_days, min_store_count, max_store_count, description
      FROM packages
      WHERE status = 'ACTIVE'
+       AND EXISTS (
+           SELECT 1 FROM package_price_tiers t
+           WHERE t.package_id = packages.id
+             AND t.status = 'ACTIVE'
+       )
      ORDER BY price ASC, id ASC"
 );
 $stmt->execute();
