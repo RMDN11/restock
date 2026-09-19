@@ -9,6 +9,7 @@ $pageTitle = 'Toko Saya';
 $userId = (int) $authUserId;
 $accountId = (int) $authAccountId;
 $errors = [];
+$isStoreAdmin = strtoupper((string) $authRole) === 'ADMIN';
 
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -16,6 +17,10 @@ if (empty($_SESSION['csrf_token'])) {
 $csrfToken = $_SESSION['csrf_token'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!$isStoreAdmin) {
+        $errors[] = 'Hanya owner/admin account yang dapat menambah toko.';
+    }
+
     $postedToken = (string) ($_POST['csrf_token'] ?? '');
     if ($postedToken === '' || !hash_equals($csrfToken, $postedToken)) {
         $errors[] = 'Sesi keamanan tidak valid. Silakan coba lagi.';
@@ -230,7 +235,11 @@ require_once __DIR__ . '/includes/sidebar.php';
                 <i data-lucide="store" class="w-5 h-5 text-neutral-400"></i>
             </div>
 
-            <?php if (!$canAdd['allowed']): ?>
+            <?php if (!$isStoreAdmin): ?>
+                <div class="mt-5 rounded-2xl border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-600">
+                    Hanya owner/admin account yang dapat menambah toko.
+                </div>
+            <?php elseif (!$canAdd['allowed']): ?>
                 <div class="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
                     <?= e($canAdd['reason']) ?>
                     <?php if (!$entitlement): ?>
