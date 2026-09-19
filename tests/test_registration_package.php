@@ -25,6 +25,7 @@ $required = [
     "SELECT id, name, price, duration_days FROM packages WHERE id = :package_id AND status = 'ACTIVE' LIMIT 1",
     "status = 'ACTIVE'",
     "\$_SESSION['selected_package_id'] = \$packageId;",
+    "\$_SESSION['selected_store_count']",
     "header('Location: /checkout.php');",
 ];
 
