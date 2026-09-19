@@ -86,12 +86,10 @@ require_once __DIR__ . '/../includes/sidebar.php';
         </div>
         <div>
             <label class="block text-sm font-medium mb-2" for="duration_days">Durasi</label>
-                <div class="relative">
-                    <input id="duration_days" name="duration_days" type="number" min="1" max="36500" required value="<?= e($durationDays) ?>" class="w-full h-11 rounded-xl border border-neutral-200 px-4 pr-16 text-sm outline-none focus:border-neutral-400">
-                    <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-neutral-400">hari</span>
-                </div>
+            <div class="relative">
+                <input id="duration_days" name="duration_days" type="number" min="1" max="36500" required value="<?= e($durationDays) ?>" class="w-full h-11 rounded-xl border border-neutral-200 px-4 pr-16 text-sm outline-none focus:border-neutral-400">
+                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-neutral-400">hari</span>
             </div>
-        </div>
         </div>
         <div class="rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
             <p class="text-xs font-semibold uppercase tracking-[0.12em] text-neutral-400">Pricing</p>
