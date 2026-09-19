@@ -132,11 +132,12 @@ function restockValidateTierCoverage(PDO $pdo, int $packageId, ?int $excludeTier
          FROM package_price_tiers
          WHERE package_id = :package_id
            AND status = 'ACTIVE'
-           AND (:exclude_tier_id IS NULL OR id <> :exclude_tier_id)"
+           AND (:exclude_tier_id_a IS NULL OR id <> :exclude_tier_id_b)"
     );
     $stmt->execute([
         ':package_id' => $packageId,
-        ':exclude_tier_id' => $excludeTierId,
+        ':exclude_tier_id_a' => $excludeTierId,
+        ':exclude_tier_id_b' => $excludeTierId,
     ]);
 
     foreach ($stmt->fetchAll() as $tier) {
