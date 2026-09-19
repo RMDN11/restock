@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../includes/developer_auth.php';
+require_once __DIR__ . '/../../includes/package_pricing.php';
 
 $pageTitle = 'Paket';
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -96,8 +97,9 @@ require_once __DIR__ . '/../includes/sidebar.php';
                     </div>
 
                     <div class="mt-6">
-                        <p class="text-2xl font-semibold">Rp <?= number_format((float) $package['price'], 0, ',', '.') ?></p>
-                        <p class="text-xs text-neutral-400 mt-1"><?= number_format((int) $package['duration_days']) ?> hari<?php if ($package['min_store_count'] !== null): ?> · mulai <?= number_format((int) $package['min_store_count']) ?> toko<?php endif; ?><?php if ($package['max_store_count'] !== null): ?> · sampai <?= number_format((int) $package['max_store_count']) ?> toko<?php endif; ?></p>
+                        <?php $packageTiers = restockGetPackageTiers($pdo, (int) $package['id']); ?>
+                        <p class="text-2xl font-semibold">Rp <?= number_format(restockGetPackageStartingPrice(['price' => $package['price'], 'tiers' => $packageTiers]), 0, ',', '.') ?></p>
+                        <p class="text-xs text-neutral-400 mt-1"><?= number_format((int) $package['duration_days']) ?> hari · <?= count($packageTiers) ?> tier ACTIVE</p>
                     </div>
 
                     <?php if ($package['description']): ?>
