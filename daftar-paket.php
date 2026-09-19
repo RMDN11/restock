@@ -232,7 +232,7 @@ document.querySelectorAll('.package-card').forEach(function (card) {
         label.textContent = tier.max === null
             ? tier.min + '+ toko'
             : (tier.min === tier.max ? tier.min + ' toko' : tier.min + '–' + tier.max + ' toko');
-        price.textContent = formatRupiah(tier.price) + ' / ' + count + ' toko';
+        price.textContent = formatRupiah(tier.price) + ' untuk kapasitas ' + count + ' toko';
         submit.disabled = false;
         submit.classList.remove('opacity-50', 'cursor-not-allowed');
     }
