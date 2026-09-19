@@ -42,7 +42,7 @@ $storeCount = (int) ($_SESSION['selected_store_count'] ?? 0);
 $pricingTierId = (int) ($_SESSION['selected_pricing_tier_id'] ?? 0);
 
 if ($accountId <= 0 || $storeId <= 0 || $packageId <= 0) {
-    unset($_SESSION['selected_package_id'], $_SESSION['payment_id']);
+    unset($_SESSION['selected_package_id'], $_SESSION['selected_store_count'], $_SESSION['selected_pricing_tier_id'], $_SESSION['payment_id']);
     header('Location: ' . $checkoutOrigin);
     exit;
 }
