@@ -19,8 +19,18 @@ function rupiah($value): string
     return 'Rp ' . number_format((float) $value, 0, ',', '.');
 }
 
+$checkoutOrigin = (string) ($_SESSION['checkout_origin'] ?? '');
+if (!in_array($checkoutOrigin, ['/daftar-paket.php', '/renewal.php'], true)) {
+    $checkoutOrigin = '/daftar-paket.php';
+}
+
+$isRenewalCheckout = $checkoutOrigin === '/renewal.php';
+$checkoutBackLabel = $isRenewalCheckout
+    ? 'Kembali ke renewal'
+    : 'Kembali ke pilih paket';
+
 if (empty($_SESSION['selected_package_id'])) {
-    header('Location: /paket/');
+    header('Location: ' . $checkoutOrigin);
     exit;
 }
 
@@ -30,7 +40,7 @@ $packageId = (int) ($_SESSION['selected_package_id'] ?? 0);
 
 if ($accountId <= 0 || $storeId <= 0 || $packageId <= 0) {
     unset($_SESSION['selected_package_id'], $_SESSION['payment_id']);
-    header('Location: /paket/');
+    header('Location: ' . $checkoutOrigin);
     exit;
 }
 
@@ -51,7 +61,7 @@ $package = $packageStmt->fetch();
 
 if (!$package) {
     unset($_SESSION['selected_package_id'], $_SESSION['payment_id']);
-    header('Location: /paket/');
+    header('Location: ' . $checkoutOrigin);
     exit;
 }
 
@@ -227,7 +237,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (!$package) {
                 unset($_SESSION['selected_package_id'], $_SESSION['payment_id']);
-                header('Location: /paket/');
+                header('Location: ' . $checkoutOrigin);
                 exit;
             }
 
@@ -304,8 +314,8 @@ $pageTitle = 'Checkout';
     <main class="mx-auto flex min-h-screen max-w-3xl items-center px-4 py-8 sm:px-6">
         <section class="w-full">
             <div class="mb-6">
-                <a href="/paket/" class="text-sm font-medium text-neutral-500 hover:text-neutral-900">
-                    ← Kembali ke paket
+                <a href="<?= e($checkoutOrigin) ?>" class="text-sm font-medium text-neutral-500 hover:text-neutral-900">
+                    ← <?= e($checkoutBackLabel) ?>
                 </a>
                 <p class="mt-6 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-400">RESTOCK CHECKOUT</p>
                 <h1 class="mt-2 text-3xl font-semibold tracking-tight">Selesaikan pembayaran</h1>
