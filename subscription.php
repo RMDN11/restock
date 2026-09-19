@@ -23,6 +23,8 @@ $subscriptionStmt = $pdo->prepare(
         sub.starts_at,
         sub.ends_at,
         sub.status,
+        sub.store_count,
+        sub.pricing_tier_id,
         p.name AS package_name,
         p.price,
         p.duration_days
@@ -134,6 +136,7 @@ if ($hasActive) {
                             <h2 class="text-2xl font-semibold mt-2">ACTIVE</h2>
                             <p class="text-sm text-neutral-500 mt-2">
                                 <?= e($subscription['package_name']) ?>
+                                <?php if (!empty($subscription['store_count'])): ?> · <?= e($subscription['store_count']) ?> toko<?php endif; ?>
                             </p>
                         <?php elseif ($subscription): ?>
                             <h2 class="text-2xl font-semibold mt-2"><?= e($subscription['status']) ?></h2>
