@@ -77,6 +77,15 @@ $pendingStmt->execute([
 ]);
 $pendingPayment = $pendingStmt->fetch();
 
+$paymentAccountsStmt = $pdo->query(
+    "SELECT id, bank_name, account_name, account_number, notes
+     FROM payment_accounts
+     WHERE status = 'ACTIVE'
+     ORDER BY sort_order ASC, id ASC"
+);
+$paymentAccounts = $paymentAccountsStmt->fetchAll();
+
+
 $success = isset($_GET['success']) && $_GET['success'] === '1';
 $error = '';
 $proofSuccess = '';
@@ -244,9 +253,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['payment_id'] = (int) $pendingPayment['id'];
                 $success = true;
             } else {
-                $expiredAt = date('Y-m-d H:i:s', time() + 86400);
+                if (!$paymentAccounts) {
+                    $error = 'Rekening pembayaran belum tersedia. Silakan hubungi admin.';
+                } else {
+                    $expiredAt = date('Y-m-d H:i:s', time() + 86400);
 
-                try {
+                    try {
                     $paymentStmt = $pdo->prepare(
                         "INSERT INTO payments
                             (account_id, store_id, package_id, amount, payment_method, status, expired_at, created_at, updated_at)
@@ -266,8 +278,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     header('Location: /checkout.php?success=1');
                     exit;
-                } catch (PDOException $e) {
-                    $error = 'Pembayaran belum dapat dibuat. Silakan coba lagi.';
+                    } catch (PDOException $e) {
+                        $error = 'Pembayaran belum dapat dibuat. Silakan coba lagi.';
+                    }
                 }
             }
         }
@@ -355,6 +368,39 @@ $pageTitle = 'Checkout';
                         <p class="mt-1 text-xs text-neutral-500">Status awal: Pending</p>
                     </div>
 
+                    <?php if ($paymentAccounts): ?>
+                        <div class="mt-5 border-t border-neutral-100 pt-5">
+                            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400">Rekening Pembayaran</p>
+                            <div class="mt-3 space-y-3">
+                                <?php foreach ($paymentAccounts as $paymentAccount): ?>
+                                    <div class="rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+                                        <div class="flex items-start justify-between gap-3">
+                                            <div>
+                                                <p class="text-sm font-semibold"><?= e($paymentAccount['bank_name']) ?></p>
+                                                <p class="mt-1 text-lg font-semibold tracking-tight"><?= e($paymentAccount['account_number']) ?></p>
+                                                <p class="mt-1 text-xs text-neutral-500">a.n. <?= e($paymentAccount['account_name']) ?></p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                class="copy-checkout-account inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-xs font-semibold border border-neutral-200"
+                                                data-copy="<?= e($paymentAccount['bank_name'] . ' ' . $paymentAccount['account_number'] . ' a.n. ' . $paymentAccount['account_name']) ?>"
+                                            >
+                                                <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy
+                                            </button>
+                                        </div>
+                                        <?php if (!empty($paymentAccount['notes'])): ?>
+                                            <p class="mt-2 text-[11px] leading-5 text-neutral-400"><?= e($paymentAccount['notes']) ?></p>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <div class="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-800">
+                            Rekening pembayaran belum tersedia. Pembayaran belum dapat dibuat.
+                        </div>
+                    <?php endif; ?>
+
                     <?php if ($pendingPayment): ?>
                         <div class="mt-5">
                             <p class="text-xs text-neutral-400">Tagihan pending</p>
@@ -418,6 +464,21 @@ $pageTitle = 'Checkout';
     </main>
 
     <script>
+        document.querySelectorAll('.copy-checkout-account').forEach(function (button) {
+            button.addEventListener('click', async function () {
+                try {
+                    await navigator.clipboard.writeText(button.dataset.copy || '');
+                    const original = button.innerHTML;
+                    button.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5"></i> Tersalin';
+                    if (window.lucide) lucide.createIcons();
+                    setTimeout(function () {
+                        button.innerHTML = original;
+                        if (window.lucide) lucide.createIcons();
+                    }, 3000);
+                } catch (error) {}
+            });
+        });
+
         const form = document.getElementById('checkoutForm');
         const button = document.getElementById('checkoutButton');
 
