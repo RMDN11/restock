@@ -26,7 +26,7 @@ if (!$stmt->fetch()) {
     exit;
 }
 
-if ($storeCount < 1) {
+if ($storeCount < 1 || $storeCount < restockGetActiveStoreCount($pdo, $authAccountId)) {
     header('Location: /renewal.php');
     exit;
 }
