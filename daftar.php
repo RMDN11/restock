@@ -380,7 +380,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             <?php endif; ?>
 
-<?php if ($freePlanToken === '' && $packageId === null): ?>
+<?php if ($freePlanToken === '' && $packageId === null && !$freeRegistration): ?>
                 <div class="mb-6">
                     <div class="section-title">Pilih Paket</div>
                     <p class="mt-2 text-sm leading-6 text-neutral-500">
@@ -428,7 +428,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="hidden" name="package_id" value="<?= e($packageId) ?>">
                 <input type="hidden" name="free_token" value="<?= e($freePlanToken) ?>">
                 <input type="hidden" name="free_registration" value="<?= $freeRegistration ? '1' : '0' ?>">
-        <input type="hidden" name="free_registration" value="<?= $freeRegistration ? '1' : '0' ?>">
 <?php if ($freeRegistration): ?>
                     <div class="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
                         <div class="flex items-start gap-3">
