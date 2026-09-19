@@ -69,7 +69,45 @@ function restockGetActiveSubscription(PDO $pdo, int $accountId, int $storeId): ?
 
     $subscription = $stmt->fetch();
 
-    return $subscription ?: null;
+    if ($subscription) {
+        return $subscription;
+    }
+
+    /*
+     * Paid package entitlement is account-level for multi-store accounts.
+     * If the current store has no subscription row, use the account's
+     * latest active subscription so additional stores remain covered
+     * within the purchased store-count range.
+     */
+    $accountStmt = $pdo->prepare(
+        "SELECT
+            sub.id,
+            sub.account_id,
+            sub.store_id,
+            sub.package_id,
+            sub.payment_id,
+            sub.starts_at,
+            sub.ends_at,
+            sub.status,
+            p.name AS package_name,
+            p.slug AS package_slug,
+            p.duration_days
+         FROM subscriptions sub
+         INNER JOIN packages p ON p.id = sub.package_id
+         WHERE sub.account_id = :account_id
+           AND sub.status = 'ACTIVE'
+           AND sub.ends_at > CURRENT_TIMESTAMP
+         ORDER BY sub.ends_at DESC, sub.id DESC
+         LIMIT 1"
+    );
+
+    $accountStmt->execute([
+        ':account_id' => $accountId,
+    ]);
+
+    $accountSubscription = $accountStmt->fetch();
+
+    return $accountSubscription ?: null;
 }
 
 function restockGetLatestSubscription(PDO $pdo, int $accountId, int $storeId): ?array
@@ -108,7 +146,35 @@ function restockGetLatestSubscription(PDO $pdo, int $accountId, int $storeId): ?
 
     $subscription = $stmt->fetch();
 
-    return $subscription ?: null;
+    if ($subscription) {
+        return $subscription;
+    }
+
+    $accountStmt = $pdo->prepare(
+        "SELECT
+            sub.id,
+            sub.account_id,
+            sub.store_id,
+            sub.package_id,
+            sub.payment_id,
+            sub.starts_at,
+            sub.ends_at,
+            sub.status,
+            p.name AS package_name,
+            p.slug AS package_slug,
+            p.duration_days
+         FROM subscriptions sub
+         INNER JOIN packages p ON p.id = sub.package_id
+         WHERE sub.account_id = :account_id
+           AND sub.status = 'ACTIVE'
+           AND sub.ends_at > CURRENT_TIMESTAMP
+         ORDER BY sub.ends_at DESC, sub.id DESC
+         LIMIT 1"
+    );
+    $accountStmt->execute([':account_id' => $accountId]);
+    $accountSubscription = $accountStmt->fetch();
+
+    return $accountSubscription ?: null;
 }
 
 function restockHasActiveSubscription(PDO $pdo, int $accountId, int $storeId): bool
