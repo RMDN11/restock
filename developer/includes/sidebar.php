@@ -7,6 +7,7 @@ $isPackages = strpos($currentPath, '/developer/packages/') === 0;
 $isPayments = strpos($currentPath, '/developer/payments/') === 0;
 $isSubscriptions = strpos($currentPath, '/developer/subscriptions/') === 0;
 $isFreePlan = strpos($currentPath, '/developer/free-plan/') === 0;
+$isPaymentAccounts = strpos($currentPath, '/developer/payment-accounts/') === 0;
 ?>
 <aside id="developerSidebar" class="fixed z-50 inset-y-0 left-0 w-64 bg-white border-r border-neutral-200 pt-16 transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-out">
     <div class="h-full flex flex-col p-3 overflow-y-auto">
@@ -34,6 +35,9 @@ $isFreePlan = strpos($currentPath, '/developer/free-plan/') === 0;
             <p class="px-3 pt-5 pb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-400">Finance</p>
             <a href="/developer/packages/" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm <?= $isPackages ? 'bg-neutral-50 font-medium text-neutral-900' : 'text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900' ?>">
                 <i data-lucide="package" class="w-4 h-4 <?= $isPackages ? 'text-amber-600' : '' ?>"></i><span>Paket</span>
+            </a>
+            <a href="/developer/payment-accounts/" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm <?= $isPaymentAccounts ? 'bg-neutral-50 font-medium text-neutral-900' : 'text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900' ?>">
+                <i data-lucide="landmark" class="w-4 h-4 <?= $isPaymentAccounts ? 'text-cyan-600' : '' ?>"></i><span>Rekening</span>
             </a>
             <a href="/developer/payments/" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm <?= $isPayments ? 'bg-neutral-50 font-medium text-neutral-900' : 'text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900' ?>">
                 <i data-lucide="wallet-cards" class="w-4 h-4 <?= $isPayments ? 'text-emerald-600' : '' ?>"></i><span>Pembayaran</span>
