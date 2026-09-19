@@ -106,6 +106,11 @@ $registrationPackages = $registrationPackagesStmt->fetchAll();
 
 
 
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && $packageId === null && $freePlanToken === '' && !$freeRegistration) {
+    header('Location: /daftar-paket.php');
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postedToken = (string) ($_POST['csrf_token'] ?? '');
     if ($postedToken === '' || !hash_equals($csrfToken, $postedToken)) {
