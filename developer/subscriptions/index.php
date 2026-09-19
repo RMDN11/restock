@@ -98,6 +98,8 @@ try {
             sub.ends_at,
             sub.status,
             sub.created_at,
+            sub.store_count,
+            sub.pricing_tier_id,
             a.name AS account_name,
             s.name AS store_name,
             p.name AS package_name,
@@ -250,7 +252,7 @@ try {
                                 <tr class="align-top hover:bg-neutral-50/70">
                                     <td class="px-5 md:px-6 py-4"><p class="font-medium text-neutral-900">#<?= e($subscription['id']) ?></p><p class="text-xs text-neutral-400 mt-1">Payment #<?= e($subscription['payment_id']) ?></p></td>
                                     <td class="px-5 md:px-6 py-4"><p class="font-medium text-neutral-900"><?= e($subscription['account_name']) ?></p><p class="text-xs text-neutral-500 mt-1"><?= e($subscription['store_name']) ?></p><?php if (!empty($subscription['user_name'])): ?><p class="text-xs text-neutral-400 mt-1"><?= e($subscription['user_name']) ?><?php if (!empty($subscription['user_email'])): ?> · <?= e($subscription['user_email']) ?><?php endif; ?></p><?php endif; ?></td>
-                                    <td class="px-5 md:px-6 py-4"><p class="font-medium text-neutral-900"><?= e($subscription['package_name']) ?></p><p class="text-xs text-neutral-400 mt-1"><?= (int) $subscription['duration_days'] ?> hari · <?= rupiah($subscription['package_price']) ?></p></td>
+                                    <td class="px-5 md:px-6 py-4"><p class="font-medium text-neutral-900"><?= e($subscription['package_name']) ?></p><p class="text-xs text-neutral-400 mt-1"><?= (int) $subscription['duration_days'] ?> hari · <?= rupiah($subscription['package_price']) ?><?php if (!empty($subscription['store_count'])): ?> · <?= (int) $subscription['store_count'] ?> toko<?php endif; ?></p></td>
                                     <td class="px-5 md:px-6 py-4"><p class="text-xs text-neutral-400">Mulai</p><p class="font-medium"><?= e(formatDateTime($subscription['starts_at'])) ?></p><p class="text-xs text-neutral-400 mt-3">Berakhir</p><p class="font-medium"><?= e(formatDateTime($subscription['ends_at'])) ?></p></td>
                                     <td class="px-5 md:px-6 py-4"><span class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium <?= e(statusClass((string) $subscription['status'])) ?>"><?= e($subscription['status']) ?></span></td>
                                     <td class="px-5 md:px-6 py-4 text-right"><a href="/developer/payments/view.php?id=<?= (int) $subscription['payment_id'] ?>" class="inline-flex min-h-9 items-center justify-center rounded-lg border border-neutral-200 bg-white px-3 text-xs font-medium text-neutral-700 hover:bg-neutral-50">Lihat Payment</a></td>
