@@ -8,6 +8,7 @@ declare(strict_types=1);
  */
 
 require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/package_pricing.php';
 
 function e($value): string
 {
@@ -37,6 +38,8 @@ if (empty($_SESSION['selected_package_id'])) {
 $accountId = (int) ($_SESSION['account_id'] ?? 0);
 $storeId = (int) ($_SESSION['store_id'] ?? 0);
 $packageId = (int) ($_SESSION['selected_package_id'] ?? 0);
+$storeCount = (int) ($_SESSION['selected_store_count'] ?? 0);
+$pricingTierId = (int) ($_SESSION['selected_pricing_tier_id'] ?? 0);
 
 if ($accountId <= 0 || $storeId <= 0 || $packageId <= 0) {
     unset($_SESSION['selected_package_id'], $_SESSION['payment_id']);
@@ -60,21 +63,39 @@ $packageStmt->execute([
 $package = $packageStmt->fetch();
 
 if (!$package) {
-    unset($_SESSION['selected_package_id'], $_SESSION['payment_id']);
+    unset($_SESSION['selected_package_id'], $_SESSION['selected_store_count'], $_SESSION['selected_pricing_tier_id'], $_SESSION['payment_id']);
     header('Location: ' . $checkoutOrigin);
     exit;
 }
+
+if ($storeCount < 1) {
+    $storeCount = restockGetPackageDefaultStoreCount($package);
+}
+
+$pricingTier = restockFindPackagePriceTier($pdo, $packageId, $storeCount);
+
+if (!$pricingTier) {
+    unset($_SESSION['selected_package_id'], $_SESSION['selected_store_count'], $_SESSION['selected_pricing_tier_id'], $_SESSION['payment_id']);
+    header('Location: ' . $checkoutOrigin);
+    exit;
+}
+
+$pricingTierId = (int) $pricingTier['id'];
+$_SESSION['selected_store_count'] = $storeCount;
+$_SESSION['selected_pricing_tier_id'] = $pricingTierId;
 
 /*
  * Existing pending payment for this exact account/store/package.
  * This is intentionally checked before creating a new payment.
  */
 $pendingStmt = $pdo->prepare(
-    "SELECT id, amount, payment_method, status, proof_file, expired_at, created_at
+    "SELECT id, amount, payment_method, status, proof_file, expired_at, created_at, pricing_tier_id, store_count
      FROM payments
      WHERE account_id = :account_id
        AND store_id = :store_id
        AND package_id = :package_id
+       AND pricing_tier_id = :pricing_tier_id
+       AND store_count = :store_count
        AND status = 'PENDING'
        AND (expired_at IS NULL OR expired_at > CURRENT_TIMESTAMP)
      ORDER BY id DESC
@@ -84,6 +105,8 @@ $pendingStmt->execute([
     ':account_id' => $accountId,
     ':store_id' => $storeId,
     ':package_id' => $packageId,
+    ':pricing_tier_id' => $pricingTierId,
+    ':store_count' => $storeCount,
 ]);
 $pendingPayment = $pendingStmt->fetch();
 
@@ -226,7 +249,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
              * Re-read the package and its current ACTIVE price from MySQL.
              */
             $packageStmt = $pdo->prepare(
-                "SELECT id, name, slug, price, duration_days, description
+                "SELECT id, name, slug, price, duration_days, min_store_count, max_store_count, description
                  FROM packages
                  WHERE id = :package_id AND status = 'ACTIVE' LIMIT 1"
             );
@@ -236,17 +259,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $package = $packageStmt->fetch();
 
             if (!$package) {
-                unset($_SESSION['selected_package_id'], $_SESSION['payment_id']);
+                unset($_SESSION['selected_package_id'], $_SESSION['selected_store_count'], $_SESSION['selected_pricing_tier_id'], $_SESSION['payment_id']);
                 header('Location: ' . $checkoutOrigin);
                 exit;
             }
 
+            $storeCount = (int) ($_SESSION['selected_store_count'] ?? 0);
+            $pricingTier = restockFindPackagePriceTier($pdo, $packageId, $storeCount);
+
+            if (!$pricingTier) {
+                $error = 'Harga paket untuk jumlah toko yang dipilih sudah tidak tersedia. Silakan pilih paket dan jumlah toko kembali.';
+            } else {
+                $pricingTierId = (int) $pricingTier['id'];
+                $_SESSION['selected_pricing_tier_id'] = $pricingTierId;
+            }
+
             $pendingStmt = $pdo->prepare(
-                "SELECT id, amount, payment_method, status, proof_file, expired_at, created_at
+                "SELECT id, amount, payment_method, status, proof_file, expired_at, created_at, pricing_tier_id, store_count
                  FROM payments
                  WHERE account_id = :account_id
                    AND store_id = :store_id
                    AND package_id = :package_id
+                   AND pricing_tier_id = :pricing_tier_id
+                   AND store_count = :store_count
                    AND status = 'PENDING'
                    AND (expired_at IS NULL OR expired_at > CURRENT_TIMESTAMP)
                  ORDER BY id DESC
@@ -256,6 +291,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':account_id' => $accountId,
                 ':store_id' => $storeId,
                 ':package_id' => $packageId,
+                ':pricing_tier_id' => $pricingTierId,
+                ':store_count' => $storeCount,
             ]);
             $pendingPayment = $pendingStmt->fetch();
 
@@ -271,16 +308,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     try {
                     $paymentStmt = $pdo->prepare(
                         "INSERT INTO payments
-                            (account_id, store_id, package_id, amount, payment_method, status, expired_at, created_at, updated_at)
+                            (account_id, store_id, package_id, pricing_tier_id, store_count, amount, payment_method, status, expired_at, created_at, updated_at)
                          VALUES
-                            (:account_id, :store_id, :package_id, :amount, 'BANK_TRANSFER', 'PENDING', :expired_at, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+                            (:account_id, :store_id, :package_id, :pricing_tier_id, :store_count, :amount, 'BANK_TRANSFER', 'PENDING', :expired_at, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
                     );
 
                     $paymentStmt->execute([
                         ':account_id' => $accountId,
                         ':store_id' => $storeId,
                         ':package_id' => $packageId,
-                        ':amount' => $package['price'],
+                        ':pricing_tier_id' => $pricingTierId,
+                        ':store_count' => $storeCount,
+                        ':amount' => $pricingTier['price'],
                         ':expired_at' => $expiredAt,
                     ]);
 
@@ -356,7 +395,8 @@ $pageTitle = 'Checkout';
                     <div class="mt-6 grid gap-4 sm:grid-cols-2">
                         <div>
                             <p class="text-xs text-neutral-400">Harga</p>
-                            <p class="mt-1 text-xl font-semibold"><?= rupiah($package['price']) ?></p>
+                            <p class="mt-1 text-xl font-semibold"><?= rupiah($pricingTier['price']) ?></p>
+                            <p class="mt-1 text-xs text-neutral-400"><?= e($storeCount) ?> toko</p>
                         </div>
                         <div>
                             <p class="text-xs text-neutral-400">Durasi</p>
