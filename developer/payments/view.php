@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException('Pembayaran sudah diproses.');
             }
 
-            $paymentInfoStmt = $pdo->prepare("SELECT account_id, store_id, package_id FROM payments WHERE id=:id LIMIT 1");
+            $paymentInfoStmt = $pdo->prepare("SELECT account_id, store_id, package_id, pricing_tier_id, store_count FROM payments WHERE id=:id LIMIT 1");
             $paymentInfoStmt->execute([':id'=>$paymentId]);
             $paymentInfo = $paymentInfoStmt->fetch();
             if (!$paymentInfo) {
@@ -86,14 +86,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $endsAt = $startsDate->modify('+' . $durationDays . ' days')->format('Y-m-d H:i:s');
 
                 $insert = $pdo->prepare("INSERT INTO subscriptions
-                    (account_id, store_id, package_id, payment_id, starts_at, ends_at, status, created_at, updated_at)
+                    (account_id, store_id, package_id, pricing_tier_id, store_count, payment_id, starts_at, ends_at, status, created_at, updated_at)
                     VALUES
-                    (:account_id, :store_id, :package_id, :payment_id, :starts_at, :ends_at,
+                    (:account_id, :store_id, :package_id, :pricing_tier_id, :store_count, :payment_id, :starts_at, :ends_at,
                      'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
                 $insert->execute([
                     ':account_id'=>$paymentInfo['account_id'],
                     ':store_id'=>$paymentInfo['store_id'],
                     ':package_id'=>$paymentInfo['package_id'],
+                    ':pricing_tier_id'=>$paymentInfo['pricing_tier_id'],
+                    ':store_count'=>$paymentInfo['store_count'],
                     ':payment_id'=>$paymentId,
                     ':starts_at'=>$startsAt,
                     ':ends_at'=>$endsAt,
@@ -124,6 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $stmt = $pdo->prepare("SELECT
     pay.id, pay.amount, pay.payment_method, pay.status, pay.proof_file, pay.verified_at,
+    pay.pricing_tier_id, pay.store_count,
     pay.rejection_reason, pay.expired_at, pay.created_at,
     a.id AS account_id, a.name AS account_name,
     s.id AS store_id, s.name AS store_name,
@@ -141,7 +144,7 @@ WHERE pay.id=:id LIMIT 1");
 $stmt->execute([':id'=>$paymentId]);
 $payment = $stmt->fetch();
 
-$subscriptionStmt = $pdo->prepare("SELECT id, starts_at, ends_at, status FROM subscriptions WHERE payment_id=:payment_id LIMIT 1");
+$subscriptionStmt = $pdo->prepare("SELECT id, starts_at, ends_at, status, store_count, pricing_tier_id FROM subscriptions WHERE payment_id=:payment_id LIMIT 1");
 $subscriptionStmt->execute([':payment_id'=>$paymentId]);
 $subscription = $subscriptionStmt->fetch();
 
@@ -163,7 +166,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
 <div><dt class="text-xs text-neutral-400">Paket</dt><dd class="mt-1 font-medium"><?= e($payment['package_name']) ?></dd></div>
 <div><dt class="text-xs text-neutral-400">Harga Paket Saat Ini</dt><dd class="mt-1 font-medium"><?= rupiah($payment['package_current_price']) ?></dd></div>
 <div><dt class="text-xs text-neutral-400">Account</dt><dd class="mt-1 font-medium"><?= e($payment['account_name']) ?> (#<?= e($payment['account_id']) ?>)</dd></div>
-<div><dt class="text-xs text-neutral-400">Store</dt><dd class="mt-1 font-medium"><?= e($payment['store_name']) ?></dd></div>
+<div><dt class="text-xs text-neutral-400">Store</dt><dd class="mt-1 font-medium"><?= e($payment['store_name']) ?></dd><div><dt class="text-xs text-neutral-400">Kapasitas</dt><dd class="mt-1 font-medium"><?= $payment['store_count'] ? e($payment['store_count']) . ' toko' : '-' ?></dd></div></div>
 <div><dt class="text-xs text-neutral-400">User</dt><dd class="mt-1 font-medium"><?= e($payment['user_name'] ?: '-') ?></dd></div>
 <div><dt class="text-xs text-neutral-400">Email</dt><dd class="mt-1 font-medium break-all"><?= e($payment['user_email'] ?: '-') ?></dd></div>
 </dl>
@@ -174,7 +177,7 @@ require_once __DIR__ . '/../includes/sidebar.php';
 <div><p class="text-xs text-neutral-400">Mulai</p><p class="mt-1 font-medium"><?= e(date('d M Y, H:i', strtotime($subscription['starts_at']))) ?></p></div>
 <div><p class="text-xs text-neutral-400">Berakhir</p><p class="mt-1 font-medium"><?= e(date('d M Y, H:i', strtotime($subscription['ends_at']))) ?></p></div>
 </div>
-<p class="mt-3 text-xs text-neutral-500">Status subscription: <?= e($subscription['status']) ?></p>
+<p class="mt-3 text-xs text-neutral-500">Status subscription: <?= e($subscription['status']) ?><?php if ($subscription['store_count']): ?> · <?= e($subscription['store_count']) ?> toko<?php endif; ?></p>
 </div>
 <?php endif; ?>
 <div class="mt-6 border-t border-neutral-100 pt-5"><h3 class="font-medium text-sm">Bukti Pembayaran</h3>
