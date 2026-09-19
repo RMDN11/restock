@@ -65,8 +65,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ':max_store_count' => $maxStoreNumber,
             ':description' => $description !== '' ? $description : null
         ]);
-        $_SESSION['flash_success'] = 'Paket berhasil ditambahkan.';
-        header('Location: /developer/packages/');
+
+        $packageId = (int) $pdo->lastInsertId();
+        $tierStmt = $pdo->prepare(
+            "INSERT INTO package_price_tiers
+                (package_id, min_store_count, max_store_count, price, status, sort_order, created_at, updated_at)
+             VALUES
+                (:package_id, :min_store_count, :max_store_count, :price, 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+        );
+        $tierStmt->execute([
+            ':package_id' => $packageId,
+            ':min_store_count' => $minStoreNumber ?? 1,
+            ':max_store_count' => $maxStoreNumber,
+            ':price' => number_format((float) $priceNumber, 2, '.', ''),
+        ]);
+
+        $_SESSION['flash_success'] = 'Paket dan tier pricing awal berhasil ditambahkan.';
+        header('Location: /developer/packages/pricing.php?id=' . $packageId);
         exit;
     }
 }
