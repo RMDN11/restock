@@ -302,6 +302,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['store_name'] = $storeName;
             $_SESSION['store_slug'] = $slug;
             $_SESSION['selected_package_id'] = ($freePlanToken !== '' || $freeRegistration) ? null : $packageId;
+            $_SESSION['checkout_origin'] = '/daftar-paket.php';
             $_SESSION['login_at'] = time();
 
             if ($freePlanToken !== '') {
