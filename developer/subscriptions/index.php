@@ -105,12 +105,14 @@ try {
             p.name AS package_name,
             p.price AS package_price,
             p.duration_days,
+            pay.amount AS payment_amount,
             u.name AS user_name,
             u.email AS user_email
          FROM subscriptions sub
          INNER JOIN accounts a ON a.id = sub.account_id
          INNER JOIN stores s ON s.id = sub.store_id
          INNER JOIN packages p ON p.id = sub.package_id
+         LEFT JOIN payments pay ON pay.id = sub.payment_id
          LEFT JOIN store_users su
             ON su.store_id = s.id
            AND su.role = 'ADMIN'
@@ -147,7 +149,7 @@ try {
         }
 
         if ($subscription['status'] === 'ACTIVE' || $subscription['status'] === 'EXPIRED') {
-            $totalFilteredAmount += (float) $subscription['package_price'];
+            $totalFilteredAmount += (float) ($subscription['payment_amount'] ?? $subscription['package_price']);
         }
     }
 
@@ -252,7 +254,7 @@ try {
                                 <tr class="align-top hover:bg-neutral-50/70">
                                     <td class="px-5 md:px-6 py-4"><p class="font-medium text-neutral-900">#<?= e($subscription['id']) ?></p><p class="text-xs text-neutral-400 mt-1">Payment #<?= e($subscription['payment_id']) ?></p></td>
                                     <td class="px-5 md:px-6 py-4"><p class="font-medium text-neutral-900"><?= e($subscription['account_name']) ?></p><p class="text-xs text-neutral-500 mt-1"><?= e($subscription['store_name']) ?></p><?php if (!empty($subscription['user_name'])): ?><p class="text-xs text-neutral-400 mt-1"><?= e($subscription['user_name']) ?><?php if (!empty($subscription['user_email'])): ?> · <?= e($subscription['user_email']) ?><?php endif; ?></p><?php endif; ?></td>
-                                    <td class="px-5 md:px-6 py-4"><p class="font-medium text-neutral-900"><?= e($subscription['package_name']) ?></p><p class="text-xs text-neutral-400 mt-1"><?= (int) $subscription['duration_days'] ?> hari · <?= rupiah($subscription['package_price']) ?><?php if (!empty($subscription['store_count'])): ?> · <?= (int) $subscription['store_count'] ?> toko<?php endif; ?></p></td>
+                                    <td class="px-5 md:px-6 py-4"><p class="font-medium text-neutral-900"><?= e($subscription['package_name']) ?></p><p class="text-xs text-neutral-400 mt-1"><?= (int) $subscription['duration_days'] ?> hari · <?= rupiah($subscription['payment_amount'] ?? $subscription['package_price']) ?><?php if (!empty($subscription['store_count'])): ?> · <?= (int) $subscription['store_count'] ?> toko<?php endif; ?></p></td>
                                     <td class="px-5 md:px-6 py-4"><p class="text-xs text-neutral-400">Mulai</p><p class="font-medium"><?= e(formatDateTime($subscription['starts_at'])) ?></p><p class="text-xs text-neutral-400 mt-3">Berakhir</p><p class="font-medium"><?= e(formatDateTime($subscription['ends_at'])) ?></p></td>
                                     <td class="px-5 md:px-6 py-4"><span class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium <?= e(statusClass((string) $subscription['status'])) ?>"><?= e($subscription['status']) ?></span></td>
                                     <td class="px-5 md:px-6 py-4 text-right"><a href="/developer/payments/view.php?id=<?= (int) $subscription['payment_id'] ?>" class="inline-flex min-h-9 items-center justify-center rounded-lg border border-neutral-200 bg-white px-3 text-xs font-medium text-neutral-700 hover:bg-neutral-50">Lihat Payment</a></td>
