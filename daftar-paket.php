@@ -20,11 +20,8 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-if (!empty($_SESSION['user_id'])) {
-    header('Location: /');
-    exit;
-}
-
+// Package selection remains accessible after registration so the checkout flow
+// does not unexpectedly send a newly registered user to the application dashboard.
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/includes/package_pricing.php';
 
