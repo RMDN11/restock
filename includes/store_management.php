@@ -52,7 +52,8 @@ function restockGetAccountStoreEntitlement(PDO $pdo, int $accountId): ?array
             p.id AS package_id,
             p.name AS package_name,
             p.min_store_count,
-            p.max_store_count
+            p.max_store_count,
+            sub.store_count AS purchased_store_count
          FROM subscriptions sub
          INNER JOIN packages p ON p.id = sub.package_id
          WHERE sub.account_id = :account_id
@@ -77,9 +78,9 @@ function restockGetAccountStoreEntitlement(PDO $pdo, int $accountId): ?array
         'min_store_count' => $subscription['min_store_count'] !== null
             ? (int) $subscription['min_store_count']
             : null,
-        'max_store_count' => $subscription['max_store_count'] !== null
-            ? (int) $subscription['max_store_count']
-            : null,
+        'max_store_count' => $subscription['purchased_store_count'] !== null
+            ? (int) $subscription['purchased_store_count']
+            : ($subscription['max_store_count'] !== null ? (int) $subscription['max_store_count'] : null),
         'ends_at' => $subscription['ends_at'],
     ];
 }
