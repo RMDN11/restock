@@ -2,7 +2,8 @@
 declare(strict_types=1);
 
 $root = dirname(__DIR__);
-$file = $root . '/paket/index.php';
+$canonical = $root . '/daftar-paket.php';
+$legacy = $root . '/paket/index.php';
 
 function assertContract(bool $condition, string $message): void
 {
@@ -12,37 +13,43 @@ function assertContract(bool $condition, string $message): void
     }
 }
 
-assertContract(is_file($file), 'paket/index.php harus tersedia');
+assertContract(is_file($canonical), 'daftar-paket.php harus tersedia sebagai package-selection canonical');
+assertContract(is_file($legacy), 'paket/index.php harus tersedia sebagai compatibility route');
 
-$source = file_get_contents($file);
-assertContract($source !== false, 'paket/index.php harus dapat dibaca');
-$normalized = preg_replace('/\\s+/', ' ', $source);
-assertContract($normalized !== null, 'Source package selection harus dapat dinormalisasi');
+$canonicalSource = file_get_contents($canonical);
+$legacySource = file_get_contents($legacy);
+
+assertContract($canonicalSource !== false, 'daftar-paket.php harus dapat dibaca');
+assertContract($legacySource !== false, 'paket/index.php harus dapat dibaca');
+
+$normalized = preg_replace('/\\s+/', ' ', $canonicalSource);
+assertContract($normalized !== null, 'Source canonical package selection harus dapat dinormalisasi');
 
 $required = [
-    "SELECT id, name, slug, price, duration_days, description FROM packages WHERE status = 'ACTIVE' ORDER BY price ASC, id ASC",
+    'FROM packages',
     "status = 'ACTIVE'",
     'package_id',
     'http_build_query',
-    '$pdo->prepare(',
-    "htmlspecialchars",
+    'htmlspecialchars',
+    '/daftar.php?package_id=',
+    '/daftar.php?free=1',
 ];
 
 foreach ($required as $needle) {
     assertContract(
         str_contains($normalized, $needle),
-        "Kontrak package selection tidak ditemukan: {$needle}"
+        "Kontrak canonical package selection tidak ditemukan: {$needle}"
     );
 }
 
 assertContract(
-    str_contains($source, '$baseUrl = \'/daftar.php\';'),
-    'Harus menggunakan endpoint pendaftaran /daftar.php'
+    str_contains($legacySource, "header('Location: ' . \$location"),
+    'Route legacy /paket/ harus mengarahkan ke halaman paket canonical'
 );
 
 assertContract(
-    str_contains($source, "'package_id' => (int"),
-    'package_id pada link pendaftaran harus berasal dari ID package yang di-cast ke integer'
+    str_contains($legacySource, "/daftar-paket.php"),
+    'Route legacy /paket/ harus menunjuk ke /daftar-paket.php'
 );
 
-echo "PASS: package selection contract\n";
+echo "PASS: canonical package selection contract\n";

@@ -116,6 +116,20 @@ require_once __DIR__ . '/../includes/sidebar.php';
                 </div>
             </div>
         </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+                <label class="block text-sm font-medium mb-2" for="min_store_count">Minimal Toko</label>
+                <input id="min_store_count" name="min_store_count" type="number" min="1" value="<?= e($minStoreCount) ?>" class="w-full h-11 rounded-xl border border-neutral-200 px-4 text-sm outline-none focus:border-neutral-400" placeholder="1">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-2" for="max_store_count">Maksimal Toko</label>
+                <input id="max_store_count" name="max_store_count" type="number" min="1" value="<?= e($maxStoreCount) ?>" class="w-full h-11 rounded-xl border border-neutral-200 px-4 text-sm outline-none focus:border-neutral-400" placeholder="Kosong = tanpa batas">
+            </div>
+        </div>
+        <div class="rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+            <p class="text-xs font-semibold uppercase tracking-[0.12em] text-neutral-400">Cakupan Toko</p>
+            <p class="text-xs text-neutral-500 mt-1">Batas ini menentukan jumlah toko aktif yang dapat digunakan pada paket saat ini.</p>
+        </div>
         <div>
             <label class="block text-sm font-medium mb-2" for="description">Deskripsi</label>
             <textarea id="description" name="description" rows="4" class="w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm outline-none focus:border-neutral-400"><?= e($description) ?></textarea>

@@ -106,6 +106,11 @@ $registrationPackages = $registrationPackagesStmt->fetchAll();
 
 
 
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && $packageId === null && $freePlanToken === '' && !$freeRegistration) {
+    header('Location: /daftar-paket.php');
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postedToken = (string) ($_POST['csrf_token'] ?? '');
     if ($postedToken === '' || !hash_equals($csrfToken, $postedToken)) {
@@ -297,6 +302,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['store_name'] = $storeName;
             $_SESSION['store_slug'] = $slug;
             $_SESSION['selected_package_id'] = ($freePlanToken !== '' || $freeRegistration) ? null : $packageId;
+            $_SESSION['checkout_origin'] = '/daftar-paket.php';
             $_SESSION['login_at'] = time();
 
             if ($freePlanToken !== '') {

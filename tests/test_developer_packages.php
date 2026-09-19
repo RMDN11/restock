@@ -35,6 +35,7 @@ $checks = [
     'price' => 'price',
     'duration' => 'duration_days',
     'description' => 'description',
+    'store limits' => 'max_store_count',
     'slug' => 'slug',
     'prepared statements' => 'prepare(',
     'package navigation' => '/developer/packages/',

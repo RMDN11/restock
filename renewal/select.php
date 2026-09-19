@@ -25,6 +25,7 @@ if (!$stmt->fetch()) {
 }
 
 $_SESSION['selected_package_id'] = $packageId;
+$_SESSION['checkout_origin'] = '/renewal.php';
 unset($_SESSION['payment_id']);
 
 header('Location: /checkout.php');
