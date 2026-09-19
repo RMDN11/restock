@@ -49,10 +49,8 @@ assertContract(
 );
 
 assertContract(
-    str_contains($source, "':amount' => \$package['price']") ||
-    str_contains($source, "':amount' => (float) \$package['price']") ||
-    str_contains($source, "':amount' => \$package['price']"),
-    'Amount payment harus berasal dari harga package database'
+    str_contains($source, "':amount' => \$pricingTier['price']"),
+    'Amount payment harus berasal dari pricing tier database'
 );
 
 assertContract(

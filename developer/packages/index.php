@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../includes/developer_auth.php';
+require_once __DIR__ . '/../../includes/package_pricing.php';
 
 $pageTitle = 'Paket';
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -96,8 +97,9 @@ require_once __DIR__ . '/../includes/sidebar.php';
                     </div>
 
                     <div class="mt-6">
-                        <p class="text-2xl font-semibold">Rp <?= number_format((float) $package['price'], 0, ',', '.') ?></p>
-                        <p class="text-xs text-neutral-400 mt-1"><?= number_format((int) $package['duration_days']) ?> hari<?php if ($package['min_store_count'] !== null): ?> · mulai <?= number_format((int) $package['min_store_count']) ?> toko<?php endif; ?><?php if ($package['max_store_count'] !== null): ?> · sampai <?= number_format((int) $package['max_store_count']) ?> toko<?php endif; ?></p>
+                        <?php $packageTiers = restockGetPackageTiers($pdo, (int) $package['id']); ?>
+                        <p class="text-2xl font-semibold">Rp <?= number_format(restockGetPackageStartingPrice(['price' => $package['price'], 'tiers' => $packageTiers]), 0, ',', '.') ?></p>
+                        <p class="text-xs text-neutral-400 mt-1"><?= number_format((int) $package['duration_days']) ?> hari · <?= count($packageTiers) ?> tier ACTIVE</p>
                     </div>
 
                     <?php if ($package['description']): ?>
@@ -107,6 +109,9 @@ require_once __DIR__ . '/../includes/sidebar.php';
                     <?php endif; ?>
 
                     <div class="mt-auto pt-5 flex gap-2">
+                        <a href="/developer/packages/pricing.php?id=<?= (int) $package['id'] ?>" class="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm font-medium hover:bg-neutral-50">
+                            <i data-lucide="badge-dollar-sign" class="w-4 h-4"></i> Pricing
+                        </a>
                         <a href="/developer/packages/edit.php?id=<?= (int) $package['id'] ?>" class="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-neutral-100 text-sm font-medium hover:bg-neutral-200">
                             <i data-lucide="pencil" class="w-4 h-4"></i> Edit
                         </a>

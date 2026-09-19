@@ -243,7 +243,7 @@ require_once __DIR__ . '/includes/sidebar.php';
                 <div class="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
                     <?= e($canAdd['reason']) ?>
                     <?php if (!$entitlement): ?>
-                        <a href="/paket/" class="block mt-2 font-semibold underline">Lihat paket</a>
+                        <a href="/daftar-paket.php" class="block mt-2 font-semibold underline">Lihat paket</a>
                     <?php endif; ?>
                 </div>
             <?php else: ?>
