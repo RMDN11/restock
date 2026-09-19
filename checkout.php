@@ -272,7 +272,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $pricingTierId = (int) $pricingTier['id'];
                 $_SESSION['selected_pricing_tier_id'] = $pricingTierId;
-            }
 
             $pendingStmt = $pdo->prepare(
                 "SELECT id, amount, payment_method, status, proof_file, expired_at, created_at, pricing_tier_id, store_count
@@ -331,6 +330,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $error = 'Pembayaran belum dapat dibuat. Silakan coba lagi.';
                     }
                 }
+            }
             }
         }
     }
