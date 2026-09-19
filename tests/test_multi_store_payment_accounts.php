@@ -12,6 +12,7 @@ $developerSidebar = file_get_contents(__DIR__ . '/../developer/includes/sidebar.
 assert(strpos($storeHelper, 'restockGetAccountStoreEntitlement') !== false);
 assert(strpos($storeHelper, "plan_type'] === 'FREE'") !== false);
 assert(strpos($storeHelper, 'max_store_count') !== false);
+assert(strpos($storeHelper, 'purchased_store_count') !== false);
 assert(strpos($stores, 'FOR UPDATE') !== false);
 assert(strpos($stores, 'store_users') !== false);
 assert(strpos($stores, 'Batas') !== false);
