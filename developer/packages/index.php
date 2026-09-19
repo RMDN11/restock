@@ -108,11 +108,11 @@ require_once __DIR__ . '/../includes/sidebar.php';
                         <p class="text-sm text-neutral-400 mt-4">Tidak ada deskripsi.</p>
                     <?php endif; ?>
 
-                    <div class="mt-auto pt-5 grid grid-cols-2 gap-2">
-                        <a href="/developer/packages/pricing.php?id=<?= (int) $package['id'] ?>" class="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm font-medium hover:bg-neutral-50">
+                    <div class="mt-auto pt-5 flex gap-2">
+                        <a href="/developer/packages/pricing.php?id=<?= (int) $package['id'] ?>" class="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm font-medium hover:bg-neutral-50">
                             <i data-lucide="badge-dollar-sign" class="w-4 h-4"></i> Pricing
                         </a>
-                        <a href="/developer/packages/edit.php?id=<?= (int) $package['id'] ?>" class="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-neutral-100 text-sm font-medium hover:bg-neutral-200">
+                        <a href="/developer/packages/edit.php?id=<?= (int) $package['id'] ?>" class="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-neutral-100 text-sm font-medium hover:bg-neutral-200">
                             <i data-lucide="pencil" class="w-4 h-4"></i> Edit
                         </a>
                         <form method="post" action="/developer/packages/status.php" class="flex-none">
