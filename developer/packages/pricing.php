@@ -231,17 +231,17 @@ $activeTiers = array_values(array_filter(
                                 </div>
 
                                 <div class="flex flex-wrap gap-2">
+                                    <button
+                                        type="button"
+                                        class="edit-tier inline-flex items-center gap-1.5 rounded-xl bg-neutral-100 px-3 py-2 text-xs font-semibold hover:bg-neutral-200"
+                                        data-id="<?= (int) $tier['id'] ?>"
+                                        data-min="<?= (int) $tier['min_store_count'] ?>"
+                                        data-max="<?= $tier['max_store_count'] === null ? '' : (int) $tier['max_store_count'] ?>"
+                                        data-price="<?= e((string) $tier['price']) ?>"
+                                    >
+                                        <i data-lucide="pencil" class="w-3.5 h-3.5"></i> <?= $tier['status'] === 'ACTIVE' ? 'Edit' : 'Aktifkan & Edit' ?>
+                                    </button>
                                     <?php if ($tier['status'] === 'ACTIVE'): ?>
-                                        <button
-                                            type="button"
-                                            class="edit-tier inline-flex items-center gap-1.5 rounded-xl bg-neutral-100 px-3 py-2 text-xs font-semibold hover:bg-neutral-200"
-                                            data-id="<?= (int) $tier['id'] ?>"
-                                            data-min="<?= (int) $tier['min_store_count'] ?>"
-                                            data-max="<?= $tier['max_store_count'] === null ? '' : (int) $tier['max_store_count'] ?>"
-                                            data-price="<?= e((string) $tier['price']) ?>"
-                                        >
-                                            <i data-lucide="pencil" class="w-3.5 h-3.5"></i> Edit
-                                        </button>
                                         <form method="post">
                                             <input type="hidden" name="csrf_token" value="<?= e($csrfToken) ?>">
                                             <input type="hidden" name="action" value="DEACTIVATE">
