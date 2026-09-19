@@ -110,6 +110,9 @@ if ($packageId !== null) {
     if ($selectedPackage && $storeCount === null) {
         $storeCount = restockGetPackageDefaultStoreCount($selectedPackage);
     }
+    if ($selectedPackage && $storeCount !== null) {
+        $selectedPricingTier = restockFindPackagePriceTier($pdo, (int) $selectedPackage['id'], (int) $storeCount);
+    }
 }
 
 $registrationPackagesStmt = $pdo->prepare(
