@@ -35,6 +35,7 @@ $activeSubscription = restockGetActiveSubscription(
     $authAccountId,
     $authStoreId
 );
+$currentStoreCount = restockGetActiveStoreCount($pdo, $authAccountId);
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -79,6 +80,7 @@ $activeSubscription = restockGetActiveSubscription(
                 <?php
                 $tiers = restockGetPackageTiers($pdo, (int) $package['id']);
                 $defaultStoreCount = !empty($tiers) ? (int) $tiers[0]['min_store_count'] : max(1, (int) ($package['min_store_count'] ?? 1));
+                $minimumRenewalStoreCount = max($defaultStoreCount, $currentStoreCount);
                 $maxStore = !empty($tiers) && $tiers[count($tiers) - 1]['max_store_count'] !== null
                     ? (int) $tiers[count($tiers) - 1]['max_store_count']
                     : ($package['max_store_count'] !== null ? (int) $package['max_store_count'] : null);
@@ -97,8 +99,9 @@ $activeSubscription = restockGetActiveSubscription(
                     <form method="get" action="/renewal/select.php" class="mt-auto pt-5">
                         <input type="hidden" name="package_id" value="<?= (int) $package['id'] ?>">
                         <label class="block text-xs font-semibold text-neutral-600" for="renewal_store_count_<?= (int) $package['id'] ?>">Jumlah toko</label>
-                        <input id="renewal_store_count_<?= (int) $package['id'] ?>" name="store_count" type="number" min="<?= max(1, $defaultStoreCount) ?>" <?= $maxStore !== null ? 'max="' . $maxStore . '"' : '' ?> value="<?= $defaultStoreCount ?>" required class="renewal-store-count mt-2 w-full min-h-11 rounded-xl border border-neutral-200 px-4 text-sm font-medium outline-none focus:border-neutral-400">
+                        <input id="renewal_store_count_<?= (int) $package['id'] ?>" name="store_count" type="number" min="<?= max(1, $minimumRenewalStoreCount) ?>" <?= $maxStore !== null ? 'max="' . $maxStore . '"' : '' ?> value="<?= $defaultStoreCount ?>" required class="renewal-store-count mt-2 w-full min-h-11 rounded-xl border border-neutral-200 px-4 text-sm font-medium outline-none focus:border-neutral-400">
                         <p class="renewal-tier mt-2 text-xs text-neutral-400 min-h-10"></p>
+                        <p class="mt-1 text-[11px] text-neutral-400">Minimal kapasitas renewal mengikuti <?= (int) $currentStoreCount ?> toko aktif saat ini.</p>
                         <button type="submit" class="renewal-submit mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-neutral-800">
                             Pilih untuk Renewal
                         </button>
