@@ -397,6 +397,280 @@ img {
 }
 
 /* =========================================================
+   DASHBOARD APP HOME
+   ========================================================= */
+
+.mobile-dashboard {
+    display: none;
+}
+
+@media (max-width: 767px) {
+
+    .desktop-dashboard {
+        display: none;
+    }
+
+    .mobile-dashboard {
+        display: block;
+    }
+
+    .mobile-dashboard-welcome {
+        padding: 4px 2px 0;
+    }
+
+    .mobile-dashboard-primary-stat,
+    .mobile-dashboard-mini-stat,
+    .mobile-dashboard-quick-card,
+    .mobile-dashboard-list-card {
+        border: 1px solid rgba(229, 229, 229, .9);
+        box-shadow: 0 5px 20px rgba(0, 0, 0, .035);
+    }
+
+    .mobile-dashboard-primary-stat {
+        padding: 18px;
+        border-radius: 26px;
+        background: linear-gradient(145deg, #ffffff 0%, #f5f9f6 100%);
+    }
+
+    .mobile-dashboard-stat-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        color: #a3a3a3;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .mobile-dashboard-stat-icon {
+        width: 42px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        background: #edf7f0;
+        color: #166534;
+    }
+
+    .mobile-dashboard-stat-icon svg {
+        width: 20px;
+        height: 20px;
+        stroke-width: 1.9;
+    }
+
+    .mobile-dashboard-stat-meta {
+        padding: 7px 10px;
+        border-radius: 999px;
+        background: #f0fdf4;
+        color: #15803d;
+        font-size: 10px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .mobile-dashboard-mini-stat {
+        min-width: 0;
+        padding: 15px;
+        border-radius: 22px;
+        background: #fff;
+    }
+
+    .mobile-dashboard-mini-icon {
+        width: 34px;
+        height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        margin-bottom: 12px;
+    }
+
+    .mobile-dashboard-mini-icon svg {
+        width: 17px;
+        height: 17px;
+        stroke-width: 1.9;
+    }
+
+    .mobile-dashboard-mini-stat p {
+        margin: 0;
+        color: #737373;
+        font-size: 11px;
+    }
+
+    .mobile-dashboard-mini-stat strong {
+        display: block;
+        margin-top: 4px;
+        color: #171717;
+        font-size: 15px;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+    }
+
+    .mobile-dashboard-quick-card {
+        min-height: 142px;
+        padding: 17px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: space-between;
+        border-radius: 24px;
+        color: #171717;
+        text-decoration: none;
+        transition: transform .18s ease, box-shadow .18s ease;
+    }
+
+    .mobile-dashboard-quick-card:active {
+        transform: scale(.975);
+    }
+
+    .mobile-dashboard-quick-card strong {
+        margin-top: 16px;
+        font-size: 14px;
+    }
+
+    .mobile-dashboard-quick-card > span:last-child {
+        margin-top: 2px;
+        color: #737373;
+        font-size: 10px;
+    }
+
+    .mobile-dashboard-quick-icon {
+        width: 42px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 15px;
+    }
+
+    .mobile-dashboard-quick-icon svg {
+        width: 20px;
+        height: 20px;
+        stroke-width: 1.9;
+    }
+
+    .quick-violet {
+        background: #faf7ff;
+        border-color: #eee6ff;
+    }
+
+    .quick-violet .mobile-dashboard-quick-icon {
+        background: #f1e9ff;
+        color: #7c3aed;
+    }
+
+    .quick-blue {
+        background: #f5f9ff;
+        border-color: #e4efff;
+    }
+
+    .quick-blue .mobile-dashboard-quick-icon {
+        background: #e8f1ff;
+        color: #2563eb;
+    }
+
+    .quick-rose {
+        background: #fff7f8;
+        border-color: #ffe7ea;
+    }
+
+    .quick-rose .mobile-dashboard-quick-icon {
+        background: #ffecef;
+        color: #e11d48;
+    }
+
+    .quick-cyan {
+        background: #f3fbfc;
+        border-color: #e1f2f4;
+    }
+
+    .quick-cyan .mobile-dashboard-quick-icon {
+        background: #e3f5f7;
+        color: #0891b2;
+    }
+
+    .mobile-dashboard-list-card {
+        overflow: hidden;
+        border-radius: 22px;
+        background: #fff;
+    }
+
+    .mobile-dashboard-list-row {
+        min-height: 66px;
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 11px 13px;
+        color: inherit;
+        text-decoration: none;
+        border-bottom: 1px solid #f3f3f3;
+    }
+
+    .mobile-dashboard-list-row:last-child {
+        border-bottom: 0;
+    }
+
+    .mobile-dashboard-list-row:active {
+        background: #fafafa;
+    }
+
+    .mobile-dashboard-list-icon,
+    .mobile-dashboard-empty-icon {
+        width: 36px;
+        height: 36px;
+        flex: 0 0 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background: #f5f5f5;
+        color: #737373;
+    }
+
+    .mobile-dashboard-list-icon svg,
+    .mobile-dashboard-empty-icon svg {
+        width: 17px;
+        height: 17px;
+        stroke-width: 1.8;
+    }
+
+    .mobile-dashboard-list-icon.sales-icon {
+        background: #eef8f1;
+        color: #15803d;
+    }
+
+    .mobile-dashboard-list-row strong {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .mobile-dashboard-list-row small {
+        display: block;
+        margin-top: 4px;
+        color: #a3a3a3;
+        font-size: 10px;
+        line-height: 1.2;
+    }
+
+    .mobile-dashboard-stock-danger,
+    .mobile-dashboard-sale-amount {
+        flex: 0 0 auto;
+        color: #171717;
+        font-size: 11px;
+        font-weight: 700;
+        text-align: right;
+    }
+
+    .mobile-dashboard-stock-danger {
+        color: #dc2626;
+    }
+}
+
+/* =========================================================
    SIDEBAR
    ========================================================= */
 
