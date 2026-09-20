@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/package_pricing.php';
+require_once __DIR__ . '/includes/payment_lifecycle.php';
 
 function e($value): string
 {
@@ -34,6 +35,8 @@ if (empty($_SESSION['selected_package_id'])) {
     header('Location: ' . $checkoutOrigin);
     exit;
 }
+
+restockExpirePendingPayments($pdo);
 
 $accountId = (int) ($_SESSION['account_id'] ?? 0);
 $storeId = (int) ($_SESSION['store_id'] ?? 0);
