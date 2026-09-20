@@ -1,8 +1,11 @@
 <?php
 require_once __DIR__ . '/../../includes/developer_auth.php';
+require_once __DIR__ . '/../../includes/payment_lifecycle.php';
 $pageTitle = 'Detail Pembayaran';
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 $csrfToken = $_SESSION['csrf_token'];
+restockExpirePendingPayments($pdo);
+
 function e($value): string { return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8'); }
 function rupiah($value): string { return 'Rp ' . number_format((float) $value, 0, ',', '.'); }
 $paymentId = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
