@@ -353,6 +353,24 @@ $pageTitle = 'Checkout';
     <link rel="stylesheet" href="/assets/css/app.css">
 </head>
 <body class="min-h-screen bg-neutral-50 text-neutral-900">
+    <style>
+        @keyframes restock-check-pop {
+            0% { transform: scale(.55); opacity: 0; }
+            70% { transform: scale(1.08); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes restock-check-draw {
+            0% { stroke-dashoffset: 48; }
+            100% { stroke-dashoffset: 0; }
+        }
+        .restock-success-icon { animation: restock-check-pop .45s ease-out both; }
+        .restock-success-check {
+            stroke-dasharray: 48;
+            stroke-dashoffset: 48;
+            animation: restock-check-draw .45s .2s ease-out forwards;
+        }
+    </style>
+
     <main class="mx-auto flex min-h-screen max-w-3xl items-center px-4 py-8 sm:px-6">
         <section class="w-full">
             <div class="mb-6">
@@ -372,15 +390,49 @@ $pageTitle = 'Checkout';
                 </div>
             <?php endif; ?>
 
-            <?php if ($success && $pendingPayment): ?>
+            <?php if ($proofSuccess): ?>
+                <section class="mb-6 overflow-hidden rounded-3xl border border-emerald-200 bg-white shadow-sm">
+                    <div class="px-6 py-8 text-center sm:px-8">
+                        <div class="restock-success-icon mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50">
+                            <svg viewBox="0 0 24 24" class="h-9 w-9 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path class="restock-success-check" d="M5 12.5l4.2 4.2L19 7"></path>
+                            </svg>
+                        </div>
+                        <p class="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-600">Pembayaran diterima</p>
+                        <h2 class="mt-2 text-2xl font-semibold tracking-tight">Bukti pembayaran berhasil dikirim</h2>
+                        <p class="mx-auto mt-3 max-w-xl text-sm leading-6 text-neutral-500">
+                            Bukti transfer sudah tersimpan dan pembayaran sekarang menunggu verifikasi dari tim RESTOCK.
+                            Tidak perlu membuat pembayaran baru.
+                        </p>
+                    </div>
+
+                    <div class="grid border-t border-neutral-100 bg-neutral-50/70 sm:grid-cols-3">
+                        <div class="px-5 py-4">
+                            <p class="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">Status</p>
+                            <p class="mt-1 text-sm font-semibold text-amber-700">Menunggu verifikasi</p>
+                        </div>
+                        <div class="px-5 py-4">
+                            <p class="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">Tagihan</p>
+                            <p class="mt-1 text-sm font-semibold"><?= rupiah($pendingPayment['amount'] ?? $pricingTier['price']) ?></p>
+                        </div>
+                        <div class="px-5 py-4">
+                            <p class="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">Batas pembayaran</p>
+                            <p class="mt-1 text-sm font-semibold"><?= !empty($pendingPayment['expired_at']) ? e(date('d M Y, H:i', strtotime($pendingPayment['expired_at']))) : '-' ?></p>
+                        </div>
+                    </div>
+
+                    <div class="px-6 py-5 sm:px-8">
+                        <p class="text-sm font-semibold">Selanjutnya</p>
+                        <ol class="mt-3 space-y-2 text-sm leading-6 text-neutral-500">
+                            <li><span class="font-medium text-neutral-800">1.</span> Tim RESTOCK memeriksa bukti transfer dan nominal pembayaran.</li>
+                            <li><span class="font-medium text-neutral-800">2.</span> Setelah disetujui, subscription akan aktif otomatis.</li>
+                            <li><span class="font-medium text-neutral-800">3.</span> Konfirmasi verifikasi dikirim ke email akun yang terdaftar.</li>
+                        </ol>
+                    </div>
+                </section>
+            <?php elseif ($success && $pendingPayment): ?>
                 <div class="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
                     Pembayaran pending sudah tercatat. Tidak dibuat tagihan baru.
-                </div>
-            <?php endif; ?>
-
-            <?php if ($proofSuccess): ?>
-                <div class="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
-                    <?= e($proofSuccess) ?>
                 </div>
             <?php endif; ?>
 
@@ -470,7 +522,8 @@ $pageTitle = 'Checkout';
                                 <?php if (!empty($pendingPayment['proof_file'])): ?>
                                     <div class="mt-3 rounded-2xl bg-emerald-50 px-4 py-3">
                                         <p class="text-sm font-medium text-emerald-800">Bukti sudah diunggah</p>
-                                        <a href="<?= e($pendingPayment['proof_file']) ?>" target="_blank" rel="noopener" class="mt-2 inline-flex text-xs font-medium text-emerald-700 underline">
+                                        <p class="mt-1 text-xs leading-5 text-emerald-700">Pembayaran sedang menunggu verifikasi. Bukti masih dapat diganti selama status belum diverifikasi.</p>
+                                        <a href="<?= e($pendingPayment['proof_file']) ?>" target="_blank" rel="noopener" class="mt-3 inline-flex text-xs font-semibold text-emerald-700 underline">
                                             Lihat bukti
                                         </a>
                                     </div>
