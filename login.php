@@ -164,6 +164,141 @@ function issueRestockRememberToken(PDO $pdo, int $userId): void {
     );
 }
 
+/**
+ * Restore the authenticated session from a valid remember cookie.
+ *
+ * The existing token is revoked immediately and replaced with a new token
+ * before the restored session is committed to the browser.
+ */
+function attemptAutoLogin(PDO $pdo): bool
+{
+    if (!empty($_SESSION['user_id'])) {
+        return false;
+    }
+
+    $rememberToken = trim((string) ($_COOKIE[RESTOCK_REMEMBER_COOKIE] ?? ''));
+
+    if ($rememberToken === '' || !preg_match('/\A[a-f0-9]{64}\z/', $rememberToken)) {
+        return false;
+    }
+
+    $tokenHash = hash('sha256', $rememberToken);
+
+    $stmt = $pdo->prepare(
+        "SELECT
+            rt.id AS token_id,
+            u.id,
+            u.name,
+            u.username,
+            u.role,
+            u.status
+         FROM remember_tokens rt
+         INNER JOIN users u ON u.id = rt.user_id
+         WHERE rt.token_hash = :token_hash
+           AND rt.expires_at > CURRENT_TIMESTAMP
+           AND u.status = 'ACTIVE'
+         LIMIT 1"
+    );
+    $stmt->execute([
+        ':token_hash' => $tokenHash,
+    ]);
+
+    $user = $stmt->fetch();
+
+    if (!$user) {
+        setcookie(
+            RESTOCK_REMEMBER_COOKIE,
+            '',
+            [
+                'expires'  => time() - 42000,
+                'path'     => '/',
+                'secure'   => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+                'httponly' => true,
+                'samesite' => 'Lax',
+            ]
+        );
+
+        return false;
+    }
+
+    try {
+        $pdo->beginTransaction();
+
+        $delete = $pdo->prepare(
+            "DELETE FROM remember_tokens
+             WHERE id = :token_id
+               AND token_hash = :token_hash"
+        );
+        $delete->execute([
+            ':token_id'   => (int) $user['token_id'],
+            ':token_hash' => $tokenHash,
+        ]);
+
+        if ($delete->rowCount() !== 1) {
+            $pdo->rollBack();
+            return false;
+        }
+
+        $newRawToken = bin2hex(random_bytes(32));
+        $newTokenHash = hash('sha256', $newRawToken);
+
+        $insert = $pdo->prepare(
+            "INSERT INTO remember_tokens
+                (user_id, token_hash, expires_at, created_at)
+             VALUES
+                (:user_id, :token_hash, DATE_ADD(NOW(), INTERVAL 30 DAY), NOW())"
+        );
+        $insert->execute([
+            ':user_id'    => (int) $user['id'],
+            ':token_hash' => $newTokenHash,
+        ]);
+
+        if (!session_regenerate_id(true)) {
+            throw new RuntimeException('Session ID regeneration failed.');
+        }
+
+        $_SESSION['login_at'] = time();
+
+        if ($user['role'] === 'DEVELOPER') {
+            $_SESSION['user_id']   = (int) $user['id'];
+            $_SESSION['user_name'] = $user['name'];
+            $_SESSION['username']  = $user['username'];
+            $_SESSION['role']      = 'DEVELOPER';
+
+            unset(
+                $_SESSION['account_id'],
+                $_SESSION['store_id'],
+                $_SESSION['store_name'],
+                $_SESSION['store_slug']
+            );
+        } elseif (!establishStoreSession($pdo, $user)) {
+            throw new RuntimeException('User belum memiliki Store aktif.');
+        }
+
+        $pdo->commit();
+
+        setcookie(
+            RESTOCK_REMEMBER_COOKIE,
+            $newRawToken,
+            [
+                'expires'  => time() + RESTOCK_SESSION_LIFETIME,
+                'path'     => '/',
+                'secure'   => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+                'httponly' => true,
+                'samesite' => 'Lax',
+            ]
+        );
+
+        return true;
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+
+        return false;
+    }
+}
+
 function restockSessionExpired(): bool {
     $loginAt = (int) ($_SESSION['login_at'] ?? 0);
 
@@ -172,6 +307,16 @@ function restockSessionExpired(): bool {
     }
 
     return (time() - $loginAt) >= RESTOCK_SESSION_LIFETIME;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Auto-login dari remember token
+|--------------------------------------------------------------------------
+*/
+
+if (empty($_SESSION['user_id'])) {
+    attemptAutoLogin($pdo);
 }
 
 /*
@@ -292,6 +437,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
              * berhasil login dengan username + password.
              */
             $_SESSION['login_at'] = time();
+
+            // Terbitkan remember token agar login tetap tersimpan lintas session.
+            issueRestockRememberToken($pdo, (int) $user['id']);
 
             if ($user['role'] === 'DEVELOPER') {
                 $_SESSION['user_id']   = (int) $user['id'];
