@@ -61,6 +61,30 @@ $todaySales = (float) ($stmt->fetch()['total_sales'] ?? 0);
 
 /*
 |--------------------------------------------------------------------------
+| JUMLAH TRANSAKSI HARI INI
+|--------------------------------------------------------------------------
+*/
+
+$stmt = $pdo->prepare("
+    SELECT COUNT(*) AS total_transactions
+    FROM sales
+    WHERE sale_date >= :start_date
+      AND sale_date < :end_date
+      AND status = 'COMPLETED'
+      AND store_id = :store_id_transactions
+");
+
+$stmt->execute([
+    ':start_date' => $today . ' 00:00:00',
+    ':end_date' => date('Y-m-d', strtotime($today . ' +1 day')) . ' 00:00:00',
+    ':store_id_transactions' => $storeId,
+]);
+
+$todayTransactions = (int) ($stmt->fetch()['total_transactions'] ?? 0);
+
+
+/*
+|--------------------------------------------------------------------------
 | KEUNTUNGAN HARI INI
 |--------------------------------------------------------------------------
 */
