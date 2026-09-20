@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../includes/developer_auth.php';
 require_once __DIR__ . '/../../includes/payment_lifecycle.php';
+require_once __DIR__ . '/../../includes/payment_email.php';
 $pageTitle = 'Detail Pembayaran';
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 $csrfToken = $_SESSION['csrf_token'];
@@ -46,6 +47,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         try {
             $pdo->beginTransaction();
+            $subscriptionStart = null;
+            $subscriptionEnd = null;
 
             $stmt = $pdo->prepare("UPDATE payments
                 SET status='VERIFIED', verified_by=:verified_by, verified_at=CURRENT_TIMESTAMP,
@@ -87,6 +90,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $startsDate = new DateTimeImmutable((string) $startsAt);
                 $endsAt = $startsDate->modify('+' . $durationDays . ' days')->format('Y-m-d H:i:s');
+                $subscriptionStart = (string) $startsAt;
+                $subscriptionEnd = (string) $endsAt;
 
                 $insert = $pdo->prepare("INSERT INTO subscriptions
                     (account_id, store_id, package_id, pricing_tier_id, store_count, payment_id, starts_at, ends_at, status, created_at, updated_at)
@@ -106,7 +111,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $pdo->commit();
-            $_SESSION['payment_flash_success'] = 'Pembayaran diverifikasi dan subscription diaktifkan.';
+
+            $emailStmt = $pdo->prepare(
+                "SELECT
+                    p.name AS package_name,
+                    pay.amount,
+                    pay.store_count,
+                    pay.verified_at,
+                    u.name AS user_name,
+                    u.email AS user_email,
+                    sub.starts_at,
+                    sub.ends_at
+                 FROM payments pay
+                 INNER JOIN packages p ON p.id = pay.package_id
+                 INNER JOIN subscriptions sub ON sub.payment_id = pay.id
+                 LEFT JOIN store_users su ON su.store_id = pay.store_id
+                    AND su.role = 'ADMIN'
+                    AND su.status = 'ACTIVE'
+                 LEFT JOIN users u ON u.id = su.user_id
+                    AND u.status = 'ACTIVE'
+                 WHERE pay.id = :payment_id
+                 LIMIT 1"
+            );
+            $emailStmt->execute([':payment_id' => $paymentId]);
+            $emailData = $emailStmt->fetch();
+
+            $emailSent = false;
+            if ($emailData) {
+                $emailSent = restockSendPaymentVerifiedEmail(
+                    (string) ($emailData['user_email'] ?? ''),
+                    (string) ($emailData['user_name'] ?? 'Pelanggan RESTOCK'),
+                    (string) $emailData['package_name'],
+                    rupiah($emailData['amount']),
+                    date('d M Y, H:i', strtotime((string) $emailData['starts_at'])),
+                    date('d M Y, H:i', strtotime((string) $emailData['ends_at'])),
+                    (int) $emailData['store_count']
+                );
+            }
+
+            if ($emailSent) {
+                $_SESSION['payment_flash_success'] = 'Pembayaran diverifikasi, subscription diaktifkan, dan email konfirmasi dikirim.';
+            } else {
+                $_SESSION['payment_flash_success'] = 'Pembayaran diverifikasi dan subscription diaktifkan. Email konfirmasi belum dapat dikirim.';
+            }
         } catch (Throwable $e) {
             if ($pdo->inTransaction()) $pdo->rollBack();
             $_SESSION['payment_flash_error'] = 'Verifikasi gagal diproses. Tidak ada perubahan yang disimpan.';
