@@ -31,7 +31,7 @@ $pageTitle = $pageTitle ?? 'Dashboard';
 
     <link
         rel="stylesheet"
-        href="/assets/css/app.css"
+        href="/assets/css/app.css?v=20260920"
     >
 
     <script src="https://cdn.tailwindcss.com"></script>
