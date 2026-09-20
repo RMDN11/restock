@@ -27,6 +27,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/subscription.php';
+require_once __DIR__ . '/payment_lifecycle.php';
 require_once __DIR__ . '/special_access.php';
 
 function destroyRestockAuthSession(): void {
@@ -316,7 +317,7 @@ if ($isSubscriptionGated) {
     );
 
     if (!$hasSpecialAccess) {
-        restockRequireActiveSubscription(
+        restockRequireApplicationAccess(
             $pdo,
             (int) $membership['account_id'],
             (int) $membership['store_id']
