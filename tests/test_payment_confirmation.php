@@ -13,8 +13,10 @@ $paymentEmail = file_get_contents($root . '/includes/payment_email.php');
 $paymentView = file_get_contents($root . '/developer/payments/view.php');
 
 $assertions = [
-    'checkout has animated confirmation state' => str_contains($checkout, 'restock-success-icon'),
-    'checkout confirms proof submission' => str_contains($checkout, 'Bukti pembayaran berhasil dikirim'),
+    'checkout redirects to payment status page after proof upload' => str_contains($checkout, "header('Location: /payment-status.php?id=' . $paymentId);"),
+    'payment status page exists' => file_exists($root . '/payment-status.php'),
+    'checkout has animated confirmation state' => str_contains(file_get_contents($root . '/payment-status.php'), 'restock-status-icon'),
+    'payment status confirms proof submission' => str_contains(file_get_contents($root . '/payment-status.php'), 'Bukti pembayaran sudah diterima'),
     'checkout explains verification next step' => str_contains($checkout, 'subscription akan aktif otomatis'),
     'checkout explains email confirmation' => str_contains($checkout, 'Konfirmasi verifikasi dikirim ke email akun yang terdaftar'),
     'email helper exists' => $paymentEmail !== false,
