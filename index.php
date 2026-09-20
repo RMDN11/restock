@@ -248,7 +248,9 @@ require_once __DIR__ . '/includes/sidebar.php';
 
     <!-- Mobile Header -->
 <!-- Main -->
-    <main class="p-4 md:p-6 lg:p-8">
+    <?php require_once __DIR__ . '/includes/mobile_dashboard.php'; ?>
+
+<main class="desktop-dashboard p-4 md:p-6 lg:p-8">
 
         <!-- Header -->
         <div class="mb-8">
