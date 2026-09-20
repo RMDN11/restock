@@ -295,6 +295,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
              * berhasil login dengan username + password.
              */
             $_SESSION['login_at'] = time();
+            // Panggil fungsi untuk menerbitkan token ke database dan browser
+issueRestockRememberToken($pdo, (int) $user['id']);
 
             if ($user['role'] === 'DEVELOPER') {
                 $_SESSION['user_id']   = (int) $user['id'];
