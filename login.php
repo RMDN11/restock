@@ -1,13 +1,14 @@
 <?php
 /*
 |--------------------------------------------------------------------------
-| RESTOCK - Persistent Login Session (24 Jam)
+| RESTOCK - Persistent Login Session
 |--------------------------------------------------------------------------
-| Session tetap hidup sampai 24 jam sejak login terakhir.
-| Browser/app ditutup tidak otomatis menghapus session cookie.
+| Login dipertahankan melalui remember token selama 30 hari.
+| Browser/app dapat ditutup tanpa memaksa user login ulang.
 */
 
-const RESTOCK_SESSION_LIFETIME = 86400; // 24 jam
+const RESTOCK_SESSION_LIFETIME = 2592000; // 30 hari
+const RESTOCK_REMEMBER_COOKIE = 'restock_remember';
 
 if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.gc_maxlifetime', (string) RESTOCK_SESSION_LIFETIME);
@@ -133,6 +134,34 @@ function establishStoreSession(PDO $pdo, array $user): bool {
     }
 
     return true;
+}
+
+function issueRestockRememberToken(PDO $pdo, int $userId): void {
+    $rawToken = bin2hex(random_bytes(32));
+    $tokenHash = hash('sha256', $rawToken);
+
+    $stmt = $pdo->prepare(
+        "INSERT INTO remember_tokens
+            (user_id, token_hash, expires_at, created_at)
+         VALUES
+            (:user_id, :token_hash, DATE_ADD(NOW(), INTERVAL 30 DAY), NOW())"
+    );
+    $stmt->execute([
+        ':user_id' => $userId,
+        ':token_hash' => $tokenHash,
+    ]);
+
+    setcookie(
+        RESTOCK_REMEMBER_COOKIE,
+        $rawToken,
+        [
+            'expires' => time() + RESTOCK_SESSION_LIFETIME,
+            'path' => '/',
+            'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]
+    );
 }
 
 function restockSessionExpired(): bool {
