@@ -230,8 +230,44 @@ require_once __DIR__ . '/../includes/sidebar.php';
 <p class="mt-3 text-xs text-neutral-500">Status subscription: <?= e($subscription['status']) ?><?php if ($subscription['store_count']): ?> · <?= e($subscription['store_count']) ?> toko<?php endif; ?></p>
 </div>
 <?php endif; ?>
-<div class="mt-6 border-t border-neutral-100 pt-5"><h3 class="font-medium text-sm">Bukti Pembayaran</h3>
-<?php if ($payment['proof_file']): ?><p class="mt-3 text-sm break-all"><?= e($payment['proof_file']) ?></p><?php else: ?><p class="mt-3 text-sm text-neutral-400">Belum ada bukti pembayaran.</p><?php endif; ?>
+<div class="mt-6 border-t border-neutral-100 pt-5">
+<h3 class="font-medium text-sm">Bukti Pembayaran</h3>
+<?php if ($payment['proof_file']): ?>
+<?php
+$proofUrl = (string) $payment['proof_file'];
+$proofExtension = strtolower(pathinfo(parse_url($proofUrl, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION));
+$isProofImage = in_array($proofExtension, ['jpg', 'jpeg', 'png', 'webp'], true);
+$isProofPdf = $proofExtension === 'pdf';
+?>
+<div class="mt-3 overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50">
+    <?php if ($isProofImage): ?>
+        <a href="<?= e($proofUrl) ?>" target="_blank" rel="noopener" class="block">
+            <img
+                src="<?= e($proofUrl) ?>"
+                alt="Bukti transfer pembayaran #<?= e($payment['id']) ?>"
+                class="max-h-[520px] w-full object-contain bg-neutral-100"
+                loading="lazy"
+            >
+        </a>
+    <?php elseif ($isProofPdf): ?>
+        <iframe
+            src="<?= e($proofUrl) ?>"
+            title="Bukti transfer pembayaran #<?= e($payment['id']) ?>"
+            class="h-[520px] w-full border-0 bg-white"
+        ></iframe>
+    <?php else: ?>
+        <div class="px-4 py-5 text-sm text-neutral-500">Format bukti tidak dapat dipratinjau.</div>
+    <?php endif; ?>
+</div>
+<div class="mt-3 flex flex-wrap items-center gap-3">
+    <a href="<?= e($proofUrl) ?>" target="_blank" rel="noopener" class="inline-flex items-center justify-center rounded-xl bg-neutral-900 px-4 py-2.5 text-xs font-semibold text-white">
+        Buka bukti penuh
+    </a>
+    <span class="text-xs text-neutral-400"><?= e(strtoupper($proofExtension ?: 'FILE')) ?></span>
+</div>
+<?php else: ?>
+<p class="mt-3 text-sm text-neutral-400">Belum ada bukti pembayaran.</p>
+<?php endif; ?>
 </div></section>
 <aside class="bento-card p-5 md:p-6 h-fit"><h2 class="font-semibold">Tindakan</h2>
 <?php if ($payment['status']==='PENDING'): ?>
