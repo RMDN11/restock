@@ -260,7 +260,7 @@ require_once __DIR__ . '/includes/sidebar.php';
         </section>
 
         <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div class="bento-card p-5 border-l-4 border-blue-500">
+            <div class="bento-card p-5 border border-blue-100 bg-blue-50/70">
                 <div class="flex items-center justify-between gap-3">
                     <span class="text-sm text-blue-700 font-medium">Total Account</span>
                     <span class="w-10 h-10 rounded-2xl bg-neutral-100 flex items-center justify-center">
@@ -271,7 +271,7 @@ require_once __DIR__ . '/includes/sidebar.php';
                 <p class="text-xs text-neutral-400 mt-1">Seluruh account terdaftar</p>
             </div>
 
-            <div class="bento-card p-5 border-l-4 border-teal-500">
+            <div class="bento-card p-5 border border-teal-100 bg-teal-50/70">
                 <div class="flex items-center justify-between gap-3">
                     <span class="text-sm text-teal-700 font-medium">Total Toko</span>
                     <span class="w-10 h-10 rounded-2xl bg-neutral-100 flex items-center justify-center">
@@ -282,7 +282,7 @@ require_once __DIR__ . '/includes/sidebar.php';
                 <p class="text-xs text-neutral-400 mt-1">Seluruh toko terdaftar</p>
             </div>
 
-            <div class="bento-card p-5 border-l-4 border-emerald-500">
+            <div class="bento-card p-5 border border-emerald-100 bg-emerald-50/70">
                 <div class="flex items-center justify-between gap-3">
                     <span class="text-sm text-emerald-700 font-medium">Account Aktif</span>
                     <span class="w-10 h-10 rounded-2xl bg-neutral-100 flex items-center justify-center">
@@ -293,7 +293,7 @@ require_once __DIR__ . '/includes/sidebar.php';
                 <p class="text-xs text-neutral-400 mt-1">Status ACTIVE</p>
             </div>
 
-            <div class="bento-card p-5 border-l-4 border-violet-500">
+            <div class="bento-card p-5 border border-violet-100 bg-violet-50/70">
                 <div class="flex items-center justify-between gap-3">
                     <span class="text-sm text-violet-700 font-medium">Toko Aktif</span>
                     <span class="w-10 h-10 rounded-2xl bg-neutral-100 flex items-center justify-center">
