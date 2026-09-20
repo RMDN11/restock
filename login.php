@@ -26,6 +26,9 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/includes/free_plan.php';
+require_once __DIR__ . '/includes/subscription.php';
+require_once __DIR__ . '/includes/special_access.php';
+require_once __DIR__ . '/includes/payment_lifecycle.php';
 
 function e($value) {
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
@@ -343,6 +346,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($pendingSpecialAccessToken !== '') {
                         header('Location: /developer-access.php?token=' . rawurlencode($pendingSpecialAccessToken));
                         exit;
+                    }
+
+                    $accountId = (int) $_SESSION['account_id'];
+                    $storeId = (int) $_SESSION['store_id'];
+
+                    $accountStmt = $pdo->prepare(
+                        "SELECT plan_type, free_plan_expires_at
+                         FROM accounts
+                         WHERE id = :account_id
+                         LIMIT 1"
+                    );
+                    $accountStmt->execute([':account_id' => $accountId]);
+                    $accountPlan = $accountStmt->fetch();
+
+                    $isFreePlan = (
+                        ($accountPlan['plan_type'] ?? 'PAID') === 'FREE' &&
+                        (
+                            empty($accountPlan['free_plan_expires_at']) ||
+                            strtotime((string) $accountPlan['free_plan_expires_at']) > time()
+                        )
+                    );
+
+                    $hasActiveSubscription = restockHasActiveSubscription(
+                        $pdo,
+                        $accountId,
+                        $storeId
+                    );
+
+                    $hasSpecialAccess = restockHasSpecialAccess(
+                        $pdo,
+                        (int) $user['id'],
+                        $accountId,
+                        $storeId
+                    );
+
+                    if (!$isFreePlan && !$hasActiveSubscription && !$hasSpecialAccess) {
+                        $attentionPayment = restockGetLatestAttentionPayment(
+                            $pdo,
+                            $accountId,
+                            $storeId
+                        );
+
+                        if ($attentionPayment) {
+                            header('Location: /payment-status.php?id=' . (int) $attentionPayment['id']);
+                            exit;
+                        }
                     }
 
                     header('Location: /');
