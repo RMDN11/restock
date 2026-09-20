@@ -3,12 +3,13 @@
 |--------------------------------------------------------------------------
 | RESTOCK - Authentication Guard
 |--------------------------------------------------------------------------
-| Session login berlaku maksimal 24 jam sejak login.
-| Menutup browser/app tidak menghapus session karena cookie dibuat
-| persistent selama 24 jam.
+| Session login dipertahankan melalui persistent remember token.
+| Cookie bertahan 30 hari dan sesi dapat dipulihkan setelah browser/app
+| ditutup. Token tetap dapat dicabut melalui logout.
 */
 
-const RESTOCK_SESSION_LIFETIME = 86400;
+const RESTOCK_SESSION_LIFETIME = 2592000;
+const RESTOCK_REMEMBER_COOKIE = 'restock_remember';
 
 if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.gc_maxlifetime', (string) RESTOCK_SESSION_LIFETIME);
@@ -51,6 +52,92 @@ function destroyRestockAuthSession(): void {
     session_destroy();
 }
 
+function clearRestockRememberCookie(): void {
+    setcookie(
+        RESTOCK_REMEMBER_COOKIE,
+        '',
+        [
+            'expires'  => time() - 42000,
+            'path'     => '/',
+            'secure'   => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]
+    );
+}
+
+function restoreRestockRememberedSession(PDO $pdo): bool {
+    $rawToken = trim((string) ($_COOKIE[RESTOCK_REMEMBER_COOKIE] ?? ''));
+
+    if ($rawToken === '' || !preg_match('/^[a-f0-9]{64}$/', $rawToken)) {
+        return false;
+    }
+
+    $tokenHash = hash('sha256', $rawToken);
+
+    $stmt = $pdo->prepare(
+        "SELECT
+            rt.id AS token_id,
+            rt.user_id,
+            u.id,
+            u.name,
+            u.username,
+            u.role,
+            u.status
+         FROM remember_tokens rt
+         INNER JOIN users u ON u.id = rt.user_id
+         WHERE rt.token_hash = :token_hash
+           AND rt.expires_at > NOW()
+           AND u.status = 'ACTIVE'
+         LIMIT 1"
+    );
+    $stmt->execute([':token_hash' => $tokenHash]);
+    $user = $stmt->fetch();
+
+    if (!$user) {
+        clearRestockRememberCookie();
+        return false;
+    }
+
+    session_regenerate_id(true);
+    $_SESSION['login_at'] = time();
+    $_SESSION['user_id'] = (int) $user['user_id'];
+    $_SESSION['user_name'] = $user['name'];
+    $_SESSION['username'] = $user['username'];
+    $_SESSION['role'] = $user['role'];
+
+    if ($user['role'] === 'DEVELOPER') {
+        return true;
+    }
+
+    $m = $pdo->prepare(
+        "SELECT su.store_id, su.role, s.name AS store_name, s.slug, s.account_id
+         FROM store_users su
+         INNER JOIN stores s ON s.id = su.store_id
+         INNER JOIN accounts a ON a.id = s.account_id
+         WHERE su.user_id = :user_id
+           AND su.status = 'ACTIVE'
+           AND s.status = 'ACTIVE'
+           AND a.status = 'ACTIVE'
+         ORDER BY su.id ASC
+         LIMIT 1"
+    );
+    $m->execute([':user_id' => (int) $user['user_id']]);
+    $membership = $m->fetch();
+
+    if (!$membership) {
+        return false;
+    }
+
+    $_SESSION['role'] = $membership['role'];
+    $_SESSION['account_id'] = (int) $membership['account_id'];
+    $_SESSION['store_id'] = (int) $membership['store_id'];
+    $_SESSION['store_name'] = $membership['store_name'];
+    $_SESSION['store_slug'] = $membership['slug'];
+
+    return true;
+}
+
 $loginAt = (int) ($_SESSION['login_at'] ?? 0);
 
 if (
@@ -63,6 +150,10 @@ if (
 }
 
 $userId = (int) ($_SESSION['user_id'] ?? 0);
+
+if ($userId <= 0 && restoreRestockRememberedSession($pdo)) {
+    $userId = (int) ($_SESSION['user_id'] ?? 0);
+}
 
 if ($userId <= 0) {
     header('Location: /login.php');
