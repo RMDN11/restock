@@ -179,17 +179,17 @@ require_once __DIR__ . '/includes/sidebar.php';
     <?php endif; ?>
 
     <section class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-        <div class="bento-card p-5 border-l-4 border-teal-500">
+        <div class="bento-card p-5 border border-teal-100 bg-teal-50/70">
             <p class="text-xs text-teal-700 font-medium">Paket</p>
             <p class="text-xl font-semibold mt-2"><?= e($entitlement['package_name'] ?? 'Belum aktif') ?></p>
             <p class="text-xs text-neutral-400 mt-1"><?= $entitlement ? e($entitlement['type']) : 'Tidak ada entitlement aktif' ?></p>
         </div>
-        <div class="bento-card p-5 border-l-4 border-blue-500">
+        <div class="bento-card p-5 border border-blue-100 bg-blue-50/70">
             <p class="text-xs text-blue-700 font-medium">Toko Aktif</p>
             <p class="text-2xl font-semibold mt-2"><?= $currentCount ?></p>
             <p class="text-xs text-neutral-400 mt-1">dari <?= $canAdd['max_count'] === null ? 'tanpa batas' : $canAdd['max_count'] ?></p>
         </div>
-        <div class="bento-card p-5 border-l-4 border-violet-500">
+        <div class="bento-card p-5 border border-violet-100 bg-violet-50/70">
             <p class="text-xs text-violet-700 font-medium">Batas</p>
             <p class="text-xl font-semibold mt-2"><?= $canAdd['max_count'] === null ? '∞' : $canAdd['max_count'] . ' toko' ?></p>
             <p class="text-xs text-neutral-400 mt-1">berdasarkan paket aktif</p>
