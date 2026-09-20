@@ -226,8 +226,8 @@ $pageTitle = $config['title'];
                     <?php endif; ?>
 
                     <div class="mt-6 flex flex-col gap-3 sm:flex-row">
-                        <a href="/" class="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-neutral-900 px-4 py-3 text-sm font-semibold text-white">
-                            Kembali ke aplikasi
+                        <a href="/logout.php" class="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-neutral-900 px-4 py-3 text-sm font-semibold text-white">
+                            Kembali ke login
                         </a>
                         <?php if ($status === 'PENDING' && !empty($payment['proof_file'])): ?>
                             <a href="<?= e($payment['proof_file']) ?>" target="_blank" rel="noopener" class="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm font-semibold text-neutral-700">
