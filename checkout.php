@@ -237,8 +237,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                             }
                                         }
 
-                                        $proofSuccess = 'Bukti pembayaran berhasil diunggah dan menunggu verifikasi.';
-                                        $pendingPayment['proof_file'] = $relativePath;
+                                        header('Location: /payment-status.php?id=' . $paymentId);
+                                        exit;
                                     }
                                 }
                             }
